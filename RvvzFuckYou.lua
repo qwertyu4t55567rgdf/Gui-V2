@@ -19,7 +19,7 @@ Gui.Enabled = true
 Gui.ResetOnSpawn = true
 
 local mainframe = Instance.new("Frame")
-mainframe.Parent = Gui
+mainframe.Parent = game.CoreGui
 mainframe.Name = "Main"
 mainframe.BackgroundColor3 = Color3.new(0.117647, 0.117647, 0.117647)
 mainframe.Position = UDim2.new(0.025, 0, 0.16, 0)
