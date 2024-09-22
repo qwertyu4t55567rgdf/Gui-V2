@@ -13,13 +13,13 @@ local functions = {
 }
 
 local Gui = Instance.new("ScreenGui")
-Gui.Parent = me.PlayerGui
+Gui.Parent = game.CoreGui
 Gui.Name = "New"
 Gui.Enabled = true
 Gui.ResetOnSpawn = true
 
 local mainframe = Instance.new("Frame")
-mainframe.Parent = game.CoreGui
+mainframe.Parent = Gui
 mainframe.Name = "Main"
 mainframe.BackgroundColor3 = Color3.new(0.117647, 0.117647, 0.117647)
 mainframe.Position = UDim2.new(0.025, 0, 0.16, 0)
