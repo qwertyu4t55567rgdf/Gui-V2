@@ -1,3 +1,5 @@
+print("loaded")
+
 local plrs = game:GetService("Players")
 local me = plrs.LocalPlayer
 local tween = game:GetService("TweenService")
