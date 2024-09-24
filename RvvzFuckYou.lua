@@ -26,8 +26,8 @@ local function open_doorsL()
         for _, i in pairs(game.Workspace.Map.Doors:GetChildren()) do
             if (game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart").Position - v:FindFirstChild("DoorBase").Position).Magnitude <= 20 then
                 if i:FindFirstChild("Values"):FindFirstChild("Locked").Value == true then
-                    i:FindFirstChild("Events"):FindFirstChild("Toggle"):FireServer("Unlock", v.Lock)
-                    i:FindFirstChild("Events"):FindFirstChild("Toggle"):FireServer("Open", v.Lock)
+                    i:FindFirstChild("Events"):FindFirstChild("Toggle"):FireServer("Unlock", i.Lock)
+                    i:FindFirstChild("Events"):FindFirstChild("Toggle"):FireServer("Open", i.Lock)
                 end
             end
         end
