@@ -22,7 +22,7 @@ local function fullbrightL(value)
 end
 
 local function open_doorsL()
-        remotes.open_doorsRun = run.RenderStepped:Connect(function()
+    remotes.open_doorsRun = run.RenderStepped:Connect(function()
         for _, i in pairs(game.Workspace.Map.Doors:GetChildren()) do
             if (game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart").Position - i:FindFirstChild("DoorBase").Position).Magnitude <= 20 then
                 if i:FindFirstChild("Values"):FindFirstChild("Locked").Value == true then
