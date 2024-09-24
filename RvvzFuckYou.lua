@@ -27,7 +27,6 @@ local function open_doorsL()
             if (game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart").Position - i:FindFirstChild("DoorBase").Position).Magnitude <= 20 then
                 if i:FindFirstChild("Values"):FindFirstChild("Locked").Value == true then
                     i:FindFirstChild("Events"):FindFirstChild("Toggle"):FireServer("Unlock", i.Lock)
-                    i:FindFirstChild("Events"):FindFirstChild("Toggle"):FireServer("Open", i.Lock)
                 end
             end
         end
@@ -35,7 +34,7 @@ local function open_doorsL()
 end
 
 local Gui = Instance.new("ScreenGui")
-Gui.Parent = me.PlayerGui
+Gui.Parent = game.CoreGui
 Gui.Name = "New"
 Gui.Enabled = true
 Gui.ResetOnSpawn = true
