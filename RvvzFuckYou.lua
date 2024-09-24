@@ -1,10 +1,9 @@
-print("loaded")
-
 local plrs = game:GetService("Players")
 local me = plrs.LocalPlayer
 local tween = game:GetService("TweenService")
 local light = game:GetService("Lighting")
 local input = game:GetService("UserInputService")
+local run = game:GetService("RunService")
 
 local functions = {
     FullbrightF = false;
@@ -14,8 +13,28 @@ local functions = {
     anti_voidF = false
 }
 
+local remotes = {
+    open_doorsRun;
+}
+
+local function fullbrightL(value)
+    light.ExposureCompensation = value
+end
+
+local function open_doorsL()
+        remotes.open_doorsRun = run.RenderStepped:Connect(function()
+        for _, i in pairs(game.Workspace.Map.Doors:GetChildren()) do
+            if (game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart").Position - v:FindFirstChild("DoorBase").Position).Magnitude <= 20 then
+                if v:FindFirstChild("Values"):FindFirstChild("Locked").Value == true then
+                    v:FindFirstChild("Events"):FindFirstChild("Toggle"):FireServer("Unlock", v.Lock)
+                end
+            end
+        end
+    end)
+end
+
 local Gui = Instance.new("ScreenGui")
-Gui.Parent = game.CoreGui
+Gui.Parent = me.PlayerGui
 Gui.Name = "New"
 Gui.Enabled = true
 Gui.ResetOnSpawn = true
@@ -661,15 +680,37 @@ FullbrightTurn.MouseButton1Click:Connect(function()
         fullbrightanim1.Completed:Connect(function()
             FullbrightTurn.BackgroundColor3 = Color3.new(0.0941176, 0.517647, 0)
         end)
-        light.ExposureCompensation = 0.5
-    else
-        functions.FullbrightF = false
-        light.ExposureCompensation = 0
-        local fullbrightinfo2 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
-        local fullbrightanim2 = tween:Create(FullbrightTurn, fullbrightinfo2, {Position = UDim2.new(0, 0, 0, 0)})
-        fullbrightanim2:Play()
-        fullbrightanim2.Completed:Connect(function()
+        fullbrightL(0.5)
+     elseif functions.FullbrightF == true then
+            functions.FullbrightF = false
+            fullbrightL(0)
+            local fullbrightinfo2 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+            local fullbrightanim2 = tween:Create(FullbrightTurn, fullbrightinfo2, {Position = UDim2.new(0, 0, 0, 0)})
+            fullbrightanim2:Play()
+            fullbrightanim2.Completed:Connect(function()
             FullbrightTurn.BackgroundColor3 = Color3.new(1, 0, 0)
+        end)
+    end
+end)
+
+TurnOpen_doors.MouseButton1Click:Connect(function()
+    if functions.AutoOpenDoorsF == false then
+        functions.AutoOpenDoorsF = true
+        open_doorsL()
+        local openDoorsinfo1 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+        local openDoorsanim1 = tween:Create(TurnOpen_doors, openDoorsinfo1, {Position = UDim2.new(0.388, 0, 0, 0)})
+        openDoorsanim1:Play()
+        openDoorsanim1.Completed:Connect(function()
+        TurnOpen_doors.BackgroundColor3 = Color3.new(0.0941176, 0.517647, 0)
+        end)
+    elseif functions.AutoOpenDoorsF == true then
+        functions.AutoOpenDoorsF = false
+        remotes.open_doorsRun:Disconnect()
+        local openDoorsinfo2 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+        local openDoorsanim2 = tween:Create(TurnOpen_doors, openDoorsinfo2, {Position = UDim2.new(0, 0, 0, 0)})
+        openDoorsanim2:Play()
+        openDoorsanim2.Completed:Connect(function()
+            TurnOpen_doors.BackgroundColor3 = Color3.new(1, 0, 0)
         end)
     end
 end)
