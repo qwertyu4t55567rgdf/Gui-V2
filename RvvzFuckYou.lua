@@ -4,17 +4,27 @@ local tween = game:GetService("TweenService")
 local light = game:GetService("Lighting")
 local input = game:GetService("UserInputService")
 local run = game:GetService("RunService")
+local camera = game.Workspace.CurrentCamera
 
 local functions = {
     FullbrightF = false;
     AutoOpenDoorsF = false;
     NoBarriersF = false;
     NoGrinderF = false;
-    anti_voidF = false
+    anti_voidF = nil;
+    flyF = nil;
+    glassbodyF = nil;
+    anti_fling = nil;
+    infstamina = nil;
+    nofalldamage = false;
+    highlight = false;
 }
 
 local remotes = {
     open_doorsRun;
+    fovslider_dragging = false;
+    fov_connection;
+    gravityslider_dragging = false;
 }
 
 local function fullbrightL(value)
@@ -22,22 +32,69 @@ local function fullbrightL(value)
 end
 
 local function open_doorsL()
-    remotes.open_doorsRun = run.RenderStepped:Connect(function()
+        remotes.open_doorsRun = run.RenderStepped:Connect(function()
         for _, i in pairs(game.Workspace.Map.Doors:GetChildren()) do
             if (game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart").Position - i:FindFirstChild("DoorBase").Position).Magnitude <= 20 then
                 if i:FindFirstChild("Values"):FindFirstChild("Locked").Value == true then
                     i:FindFirstChild("Events"):FindFirstChild("Toggle"):FireServer("Unlock", i.Lock)
+                    i:FindFirstChild("Events"):FindFirstChild("Toggle"):FireServer("Open", i.Lock)
                 end
             end
         end
     end)
 end
 
+local function nobarriersL(value)
+    local function disableTouchAndQuery(part)
+        if part:IsA("BasePart") then
+            part.CanTouch = value
+            part.CanQuery = value
+        end
+    end
+
+    local function findAndDisableParts()
+        local partNames = {"BarbedWire", "RG_Part", "Spike"}
+
+        for _, partName in ipairs(partNames) do
+            for _, part in pairs(game.Workspace:GetDescendants()) do
+                if part.Name == partName then
+                    disableTouchAndQuery(part)
+                end
+            end
+        end
+    end
+
+    findAndDisableParts()
+end
+
+local function nogrinderL(value)
+    local function disableTouchAndQuery(part)
+        if part:IsA("BasePart") then
+            part.CanTouch = value
+            part.CanQuery = value
+        end
+    end
+
+    local function findAndDisableParts()
+        local partNames = {"FirePart", "Grinder"}
+
+        for _, partName in ipairs(partNames) do
+            for _, part in pairs(game.Workspace:GetDescendants()) do
+                if part.Name == partName then
+                    disableTouchAndQuery(part)
+                end
+            end
+        end
+    end
+
+    findAndDisableParts()
+end
+
 local Gui = Instance.new("ScreenGui")
-Gui.Parent = game.CoreGui
+Gui.Parent = me.PlayerGui
 Gui.Name = "New"
 Gui.Enabled = true
-Gui.ResetOnSpawn = true
+Gui.ResetOnSpawn = false
 
 local mainframe = Instance.new("Frame")
 mainframe.Parent = Gui
@@ -80,7 +137,7 @@ consoletext.Position = UDim2.new(0, 0, 0, 0)
 consoletext.Size = UDim2.new(0, 550, 0, 580)
 consoletext.TextColor3 = Color3.new(0, 1, 0)
 consoletext.TextSize = 15
-consoletext.Text = "output - soon"
+consoletext.Text = " output - soon"
 consoletext.TextXAlignment = Enum.TextXAlignment.Left
 consoletext.TextYAlignment = Enum.TextYAlignment.Top
 consoletext.Visible = true
@@ -193,7 +250,7 @@ VisualList.Position = UDim2.new(0.054, 0, 0.271, 0)
 VisualList.Size = UDim2.new(0, 176, 0, 38)
 VisualList.TextColor3 = Color3.new(0.784314, 0.784314, 0.784314)
 VisualList.TextScaled = true
-VisualList.Text = "Visual (soon)"
+VisualList.Text = "Visual"
 VisualList.Visible = true
 
 local uicvisuall = Instance.new("UICorner")
@@ -305,6 +362,14 @@ PlayerMenu.BackgroundTransparency = 1
 PlayerMenu.Position = UDim2.new(0.209, 0, 0.01, 0)
 PlayerMenu.Size = UDim2.new(0, 774, 0, 598)
 PlayerMenu.Visible = false
+
+local VisualMenu = Instance.new("Frame")
+VisualMenu.Parent = Menus
+VisualMenu.Name = "Visual"
+VisualMenu.BackgroundTransparency = 1
+VisualMenu.Position = UDim2.new(0.209, 0, 0.01, 0)
+VisualMenu.Size = UDim2.new(0, 774, 0, 598)
+VisualMenu.Visible = false
 
 local Fullbright = Instance.new("TextLabel")
 Fullbright.Parent = WorldMenu
@@ -621,6 +686,7 @@ uicfovhow.CornerRadius = UDim.new(8, 8)
 local fovControl = Instance.new("TextLabel")
 fovControl.Parent = FOV
 fovControl.Name = "control"
+fovControl.BackgroundColor3 = Color3.new(1, 1, 1)
 fovControl.Position = UDim2.new(1.46, 0, 0.099, 0)
 fovControl.Size = UDim2.new(0, 272, 0, 25)
 fovControl.Text = ""
@@ -646,29 +712,550 @@ fovSlider.Position = UDim2.new(-0, 0, 0, 0)
 fovSlider.Size = UDim2.new(0, 199, 0, 25)
 fovSlider.TextSize = 15
 fovSlider.TextColor3 = Color3.new(1, 1, 1)
-fovSlider.Text = "0/0"
+fovSlider.Text = ""
 fovSlider.Visible = true
 
 local uicfovslider = Instance.new("UICorner")
 uicfovslider.Parent = fovSlider
 uicfovslider.CornerRadius = UDim.new(8, 8)
 
+local speed = Instance.new("TextLabel")
+speed.Parent = PlayerMenu
+speed.Name = "speed"
+speed.BackgroundColor3 = Color3.new(0.196078, 0.196078, 0.196078)
+speed.Position = UDim2.new(0.016, 0, 0.104, 0)
+speed.Size = UDim2.new(0, 194, 0, 32)
+speed.TextScaled = true
+speed.TextColor3 = Color3.new(0.784314, 0.784314, 0.784314)
+speed.Text = "speed"
+speed.Visible = true
+
+local uicspeed = Instance.new("UICorner")
+uicspeed.Parent = speed
+uicspeed.CornerRadius = UDim.new(0, 8)
+
+local speedHow = Instance.new("ImageLabel")
+speedHow.Parent = speed
+speedHow.Position = UDim2.new(1.077, 0, 0, 0)
+speedHow.Size = UDim2.new(0, 32, 0, 32)
+speedHow.Image = "rbxassetid://75772970732380"
+speedHow.Visible = true
+
+local uicspeedhow = Instance.new("UICorner")
+uicspeedhow.Parent = speedHow
+uicspeedhow.CornerRadius = UDim.new(8, 8)
+
+local speedControl = Instance.new("TextLabel")
+speedControl.Parent = speed
+speedControl.Name = "control"
+speedControl.BackgroundColor3 = Color3.new(1, 1, 1)
+speedControl.Position = UDim2.new(1.46, 0, 0.099, 0)
+speedControl.Size = UDim2.new(0, 272, 0, 25)
+speedControl.Text = ""
+speedControl.Visible = true
+
+local uicspeedcontrol = Instance.new("UICorner")
+uicspeedcontrol.Parent = speedControl
+uicspeedcontrol.CornerRadius = UDim.new(8, 8)
+
+local uisspeedcontrol = Instance.new("UIStroke")
+uisspeedcontrol.Parent = speedControl
+uisspeedcontrol.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+uisspeedcontrol.Color = Color3.new(0, 0, 0)
+uisspeedcontrol.LineJoinMode = Enum.LineJoinMode.Round
+uisspeedcontrol.Thickness = 2.4
+
+local speedSlide = Instance.new("TextButton")
+speedSlide.Parent = speedControl
+speedSlide.Name = "slide"
+speedSlide.BackgroundColor3 = Color3.new(0.235294, 0.235294, 0.235294)
+speedSlide.Position = UDim2.new(-0, 0, 0, 0)
+speedSlide.Size = UDim2.new(0, 199, 0, 25)
+speedSlide.Text = ""
+speedSlide.Visible = true
+
+local uicspeedslide = Instance.new("UICorner")
+uicspeedslide.Parent = speedSlide
+uicspeedslide.CornerRadius = UDim.new(8, 8)
+
+local speedSoon = Instance.new("TextLabel")
+speedSoon.Parent = speed
+speedSoon.Name = "soon"
+speedSoon.BackgroundTransparency = 1
+speedSoon.Position = UDim2.new(2.861, 0, 0.078, 0)
+speedSoon.Size = UDim2.new(0, 89, 0, 32)
+speedSoon.TextScaled = true
+speedSoon.TextColor3 = Color3.new(1, 1, 1)
+speedSoon.Text = "- soon"
+speedSoon.Visible = true
+
+local gravity = Instance.new("TextLabel")
+gravity.Parent = PlayerMenu
+gravity.Name = "gravity"
+gravity.BackgroundColor3 = Color3.new(0.196078, 0.196078, 0.196078)
+gravity.Position = UDim2.new(0.016, 0, 0.192, 0)
+gravity.Size = UDim2.new(0, 194, 0, 32)
+gravity.TextScaled = true
+gravity.TextColor3 = Color3.new(0.784314, 0.784314, 0.78431)
+gravity.Text = "gravity"
+gravity.Visible = true
+
+local uicgravity = Instance.new("UICorner")
+uicgravity.Parent = gravity
+uicgravity.CornerRadius = UDim.new(0, 8)
+
+local gravityHow = Instance.new("ImageLabel")
+gravityHow.Parent = gravity
+gravityHow.Name = "how"
+gravityHow.Position = UDim2.new(1.077, 0, 0, 0)
+gravityHow.Size = UDim2.new(0, 32, 0, 32)
+gravityHow.Image = "rbxassetid://75772970732380"
+gravityHow.Visible = true
+
+local uicgravityhow = Instance.new("UICorner")
+uicgravityhow.Parent = gravityHow
+uicgravityhow.CornerRadius = UDim.new(8, 8)
+
+local gravityControl = Instance.new("TextLabel")
+gravityControl.Parent = gravity
+gravityControl.Name = "control"
+gravityControl.BackgroundColor3 = Color3.new(1, 1, 1)
+gravityControl.Position = UDim2.new(1.46, 0, 0.099, 0)
+gravityControl.Size = UDim2.new(0, 272, 0, 25)
+gravityControl.Text = ""
+gravityControl.Visible = true
+
+local uicgravityControl = Instance.new("UICorner")
+uicgravityControl.Parent = gravityControl
+uicgravityControl.CornerRadius = UDim.new(8, 8)
+
+local uisgravityControl = Instance.new("UIStroke")
+uisgravityControl.Parent = gravityControl
+uisgravityControl.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+uisgravityControl.Color = Color3.new(0, 0, 0)
+uisgravityControl.LineJoinMode = Enum.LineJoinMode.Round
+uisgravityControl.Thickness = 2.4
+
+local gravitySlider = Instance.new("TextButton")
+gravitySlider.Parent = gravityControl
+gravitySlider.Name = "slide"
+gravitySlider.BackgroundColor3 = Color3.new(0.235294, 0.235294, 0.235294)
+gravitySlider.Position = UDim2.new(-0, 0, 0, 0)
+gravitySlider.Size = UDim2.new(0, 199, 0, 25)
+gravitySlider.Text = ""
+gravitySlider.Visible = true
+
+local uicgravityslider = Instance.new("UICorner")
+uicgravityslider.Parent = gravitySlider
+uicgravityslider.CornerRadius = UDim.new(8, 8)
+
+local fly = Instance.new("TextLabel")
+fly.Parent = PlayerMenu
+fly.Name = "Fly"
+fly.BackgroundColor3 = Color3.new(0.196078, 0.196078, 0.196078)
+fly.Position = UDim2.new(0.016, 0, 0.275, 0)
+fly.Size = UDim2.new(0, 194, 0, 32)
+fly.TextScaled = true
+fly.TextColor3 = Color3.new(0.784314, 0.784314, 0.784314)
+fly.Text = "Fly"
+fly.Visible = true
+
+local uicfly = Instance.new("UICorner")
+uicfly.Parent = fly
+uicfly.CornerRadius = UDim.new(0, 8)
+
+local flyHow = Instance.new("ImageLabel")
+flyHow.Parent = fly
+flyHow.Name = "how"
+flyHow.Position = UDim2.new(1.077, 0, 0, 0)
+flyHow.Size = UDim2.new(0, 32, 0, 32)
+flyHow.Image = "rbxassetid://75772970732380"
+flyHow.Visible = true
+
+local uicflyhow = Instance.new("UICorner")
+uicflyhow.Parent = flyHow
+uicflyhow.CornerRadius = UDim.new(8, 8)
+
+local flyControl = Instance.new("Frame")
+flyControl.Parent = fly
+flyControl.Name = "Control"
+flyControl.BackgroundColor3 = Color3.new(0.611765, 0.611765, 0.611765)
+flyControl.Position = UDim2.new(1.309, 0, 0, 0)
+flyControl.Size = UDim2.new(0, 58, 0, 32)
+flyControl.Visible = true
+
+local uicflycontrol = Instance.new("UICorner")
+uicflycontrol.Parent = flyControl
+uicflycontrol.CornerRadius = UDim.new(8, 8)
+
+local flyTurn = Instance.new("TextButton")
+flyTurn.Parent = flyControl
+flyTurn.Name = "turn"
+flyTurn.BackgroundColor3 = Color3.new(1, 0, 0)
+flyTurn.Position = UDim2.new(0, 0, 0, 0)
+flyTurn.Size = UDim2.new(0, 35, 0, 32)
+flyTurn.Text = ""
+flyTurn.Visible = true
+
+local uicflyturn = Instance.new("UICorner")
+uicflyturn.Parent = flyTurn
+uicflyturn.CornerRadius = UDim.new(8, 8)
+
+local flySoon = Instance.new("TextLabel")
+flySoon.Parent = fly
+flySoon.Name = "soon"
+flySoon.BackgroundTransparency = 1
+flySoon.BackgroundColor3 = Color3.new(1, 1, 1)
+flySoon.Position = UDim2.new(1.656, 0, 0, 0)
+flySoon.Size = UDim2.new(0, 89, 0, 32)
+flySoon.TextScaled = true
+flySoon.TextColor3 = Color3.new(1, 1, 1)
+flySoon.Text = "- soon"
+flySoon.Visible = true
+
+local GlassBody = Instance.new("TextLabel")
+GlassBody.Parent = PlayerMenu
+GlassBody.Name = "body"
+GlassBody.BackgroundColor3 = Color3.new(0.196078, 0.196078, 0.196078)
+GlassBody.Position = UDim2.new(0.016, 0, 0.359, 0)
+GlassBody.Size = UDim2.new(0, 194, 0, 32)
+GlassBody.TextScaled = true
+GlassBody.TextColor3 = Color3.new(0.784314, 0.784314, 0.784314)
+GlassBody.Text = "Glass body"
+GlassBody.Visible = true
+
+local uicglassbody = Instance.new("UICorner")
+uicglassbody.Parent = GlassBody
+uicglassbody.CornerRadius = UDim.new(0, 8)
+
+local glassbodyHow = Instance.new("ImageLabel")
+glassbodyHow.Parent = GlassBody
+glassbodyHow.Name = "how"
+glassbodyHow.Position = UDim2.new(1.077, 0, 0, 0)
+glassbodyHow.Size = UDim2.new(0, 32, 0, 32)
+glassbodyHow.Image = "rbxassetid://75772970732380"
+glassbodyHow.Visible = true
+
+local uicglassbodyHow = Instance.new("UICorner")
+uicglassbodyHow.Parent = glassbodyHow
+uicglassbodyHow.CornerRadius = UDim.new(8, 8)
+
+local glassbodyControl = Instance.new("Frame")
+glassbodyControl.Parent = GlassBody
+glassbodyControl.Name = "Control"
+glassbodyControl.BackgroundColor3 = Color3.new(0.611765, 0.611765, 0.611765)
+glassbodyControl.Position = UDim2.new(1.309, 0, 0, 0)
+glassbodyControl.Size = UDim2.new(0, 58, 0, 32)
+glassbodyControl.Visible = true
+
+local uicglassbodyControl = Instance.new("UICorner")
+uicglassbodyControl.Parent = glassbodyControl
+uicglassbodyControl.CornerRadius = UDim.new(8, 8)
+
+local glassbodyTurn = Instance.new("TextButton")
+glassbodyTurn.Parent = glassbodyControl
+glassbodyTurn.Name = "turn"
+glassbodyTurn.BackgroundColor3 = Color3.new(1, 0, 0)
+glassbodyTurn.Position = UDim2.new(0, 0, 0, 0)
+glassbodyTurn.Size = UDim2.new(0, 35, 0, 32)
+glassbodyTurn.Text = ""
+glassbodyTurn.Visible = true
+
+local uicglassbodyturn = Instance.new("UICorner")
+uicglassbodyturn.Parent = glassbodyTurn
+uicglassbodyturn.CornerRadius = UDim.new(8, 8)
+
+local glassbodySoon = Instance.new("TextLabel")
+glassbodySoon.Parent = GlassBody
+glassbodySoon.Name = "soon"
+glassbodySoon.BackgroundTransparency = 1
+glassbodySoon.BackgroundColor3 = Color3.new(1, 1, 1)
+glassbodySoon.Position = UDim2.new(1.656, 0, 0, 0)
+glassbodySoon.Size = UDim2.new(0, 89, 0, 32)
+glassbodySoon.TextScaled = true
+glassbodySoon.TextColor3 = Color3.new(1, 1, 1)
+glassbodySoon.Text = "- soon"
+glassbodySoon.Visible = true
+
+local antifling = Instance.new("TextLabel")
+antifling.Parent = PlayerMenu
+antifling.Name = "anti-fling"
+antifling.BackgroundColor3 = Color3.new(0.196078, 0.196078, 0.196078)
+antifling.Position = UDim2.new(0.016, 0, 0.446, 0)
+antifling.Size = UDim2.new(0, 194, 0, 32)
+antifling.TextScaled = true
+antifling.TextColor3 = Color3.new(0.784314, 0.784314, 0.784314)
+antifling.Text = "anti-fling"
+antifling.Visible = true
+
+local uicantifling = Instance.new("UICorner")
+uicantifling.Parent = antifling
+uicantifling.CornerRadius = UDim.new(0, 8)
+
+local antiflingHow = Instance.new("ImageLabel")
+antiflingHow.Parent = antifling
+antiflingHow.Name = "how"
+antiflingHow.Position = UDim2.new(1.077, 0, 0, 0)
+antiflingHow.Size = UDim2.new(0, 32, 0, 32)
+antiflingHow.Image = "rbxassetid://75772970732380"
+antiflingHow.Visible = true
+
+local uicantiflinghow = Instance.new("UICorner")
+uicantiflinghow.Parent = antiflingHow
+uicantiflinghow.CornerRadius = UDim.new(8, 8)
+
+local antiflingControl = Instance.new("Frame")
+antiflingControl.Parent = antifling
+antiflingControl.Name = "Control"
+antiflingControl.BackgroundColor3 = Color3.new(0.611765, 0.611765, 0.611765)
+antiflingControl.Position = UDim2.new(1.309, 0, 0, 0)
+antiflingControl.Size = UDim2.new(0, 58, 0, 32)
+antiflingControl.Visible = true
+
+local uicantiflingcontrol = Instance.new("UICorner")
+uicantiflingcontrol.Parent = antiflingControl
+uicantiflingcontrol.CornerRadius = UDim.new(8, 8)
+
+local antiflingTurn = Instance.new("TextButton")
+antiflingTurn.Parent = antiflingControl
+antiflingTurn.Name = "turn"
+antiflingTurn.BackgroundColor3 = Color3.new(1, 0, 0)
+antiflingTurn.Position = UDim2.new(0, 0, 0, 0)
+antiflingTurn.Size = UDim2.new(0, 35, 0, 32)
+antiflingTurn.Text = ""
+antiflingTurn.Visible = true
+
+local uicantiflingturn = Instance.new("UICorner")
+uicantiflingturn.Parent = antiflingTurn
+uicantiflingturn.CornerRadius = UDim.new(8, 8)
+
+local antiflingSoon = Instance.new("TextLabel")
+antiflingSoon.Parent = antifling
+antiflingSoon.Name = "soon"
+antiflingSoon.BackgroundTransparency = 1
+antiflingSoon.BackgroundColor3 = Color3.new(1, 1, 1)
+antiflingSoon.Position = UDim2.new(1.656, 0, 0, 0)
+antiflingSoon.Size = UDim2.new(0, 89, 0, 32)
+antiflingSoon.TextScaled = true
+antiflingSoon.TextColor3 = Color3.new(1, 1, 1)
+antiflingSoon.Text = "- soon"
+antiflingSoon.Visible = true
+
+local infstamina = Instance.new("TextLabel")
+infstamina.Parent = PlayerMenu
+infstamina.Name = "infstamina"
+infstamina.BackgroundColor3 = Color3.new(0.196078, 0.196078, 0.196078)
+infstamina.Position = UDim2.new(0.016, 0, 0.533, 0)
+infstamina.Size = UDim2.new(0, 194, 0, 32)
+infstamina.TextScaled = true
+infstamina.TextColor3 = Color3.new(0.784314, 0.784314, 0.784314)
+infstamina.Text = "inf-stamina"
+infstamina.Visible = true
+
+local uicinfstamina = Instance.new("UICorner")
+uicinfstamina.Parent = infstamina
+uicinfstamina.CornerRadius = UDim.new(0, 8)
+
+local infstaminaHow = Instance.new("ImageLabel")
+infstaminaHow.Parent = infstamina
+infstaminaHow.Name = "how"
+infstaminaHow.Position = UDim2.new(1.077, 0, 0, 0)
+infstaminaHow.Size = UDim2.new(0, 32, 0, 32)
+infstaminaHow.Image = "rbxassetid://75772970732380"
+infstaminaHow.Visible = true
+
+local uicinfstaminahow = Instance.new("UICorner")
+uicinfstaminahow.Parent = infstaminaHow
+uicinfstaminahow.CornerRadius = UDim.new(8, 8)
+
+local infstaminaControl = Instance.new("Frame")
+infstaminaControl.Parent = infstamina
+infstaminaControl.Name = "Control"
+infstaminaControl.BackgroundColor3 = Color3.new(0.611765, 0.611765, 0.611765)
+infstaminaControl.Position = UDim2.new(1.309, 0, 0, 0)
+infstaminaControl.Size = UDim2.new(0, 58, 0, 32)
+infstaminaControl.Visible = true
+
+local uicinfstaminacontrol = Instance.new("UICorner")
+uicinfstaminacontrol.Parent = infstaminaControl
+uicinfstaminacontrol.CornerRadius = UDim.new(8, 8)
+
+local infstaminaTurn = Instance.new("TextButton")
+infstaminaTurn.Parent = infstaminaControl
+infstaminaTurn.Name = "turn"
+infstaminaTurn.BackgroundColor3 = Color3.new(1, 0, 0)
+infstaminaTurn.Position = UDim2.new(0, 0, 0, 0)
+infstaminaTurn.Size = UDim2.new(0, 35, 0, 32)
+infstaminaTurn.Text = ""
+infstaminaTurn.Visible = true
+
+local uicinfstaminaturn = Instance.new("UICorner")
+uicinfstaminaturn.Parent = infstaminaTurn
+uicinfstaminaturn.CornerRadius = UDim.new(8, 8)
+
+local infstaminaSoon = Instance.new("TextLabel")
+infstaminaSoon.Parent = infstamina
+infstaminaSoon.Name = "soon"
+infstaminaSoon.BackgroundTransparency = 1
+infstaminaSoon.BackgroundColor3 = Color3.new(1, 1, 1)
+infstaminaSoon.Position = UDim2.new(1.656, 0, 0, 0)
+infstaminaSoon.Size = UDim2.new(0, 89, 0, 32)
+infstaminaSoon.TextScaled = true
+infstaminaSoon.TextColor3 = Color3.new(1, 1, 1)
+infstaminaSoon.Text = "- soon"
+infstaminaSoon.Visible = true
+
+local nofalldamage = Instance.new("TextLabel")
+nofalldamage.Parent = PlayerMenu
+nofalldamage.Name = "nofalldamage"
+nofalldamage.BackgroundColor3 = Color3.new(0.196078, 0.196078, 0.196078)
+nofalldamage.Position = UDim2.new(0.016, 0, 0.619, 0)
+nofalldamage.Size = UDim2.new(0, 194, 0, 32)
+nofalldamage.TextScaled = true
+nofalldamage.TextColor3 = Color3.new(0.784314, 0.784314, 0.784314)
+nofalldamage.Text = "no fall damage"
+nofalldamage.Visible = true
+
+local uicnofalldamage = Instance.new("UICorner")
+uicnofalldamage.Parent = nofalldamage
+uicnofalldamage.CornerRadius = UDim.new(0, 8)
+
+local nofalldamageHow = Instance.new("ImageLabel")
+nofalldamageHow.Parent = nofalldamage
+nofalldamageHow.Name = "how"
+nofalldamageHow.Position = UDim2.new(1.077, 0, 0, 0)
+nofalldamageHow.Size = UDim2.new(0, 32, 0, 32)
+nofalldamageHow.Image = "rbxassetid://75772970732380"
+nofalldamageHow.Visible = true
+
+local uicnofalldamagehow = Instance.new("UICorner")
+uicnofalldamagehow.Parent = nofalldamageHow
+uicnofalldamagehow.CornerRadius = UDim.new(8, 8)
+
+local nofalldamageControl = Instance.new("Frame")
+nofalldamageControl.Parent = nofalldamage
+nofalldamageControl.Name = "Control"
+nofalldamageControl.BackgroundColor3 = Color3.new(0.611765, 0.611765, 0.611765)
+nofalldamageControl.Position = UDim2.new(1.309, 0, 0, 0)
+nofalldamageControl.Size = UDim2.new(0, 58, 0, 32)
+nofalldamageControl.Visible = true
+
+local uicnofalldamagecontrol = Instance.new("UICorner")
+uicnofalldamagecontrol.Parent = nofalldamageControl
+uicnofalldamagecontrol.CornerRadius = UDim.new(8, 8)
+
+local nofalldamageTurn = Instance.new("TextButton")
+nofalldamageTurn.Parent = nofalldamageControl
+nofalldamageTurn.Name = "turn"
+nofalldamageTurn.BackgroundColor3 = Color3.new(1, 0, 0)
+nofalldamageTurn.Position = UDim2.new(0, 0, 0, 0)
+nofalldamageTurn.Size = UDim2.new(0, 35, 0, 32)
+nofalldamageTurn.Text = ""
+nofalldamageTurn.Visible = true
+
+local uicnofalldamageturn = Instance.new("UICorner")
+uicnofalldamageturn.Parent = nofalldamageTurn
+uicnofalldamageturn.CornerRadius = UDim.new(8, 8)
+
+local PlayerMenuSoon = Instance.new("TextLabel")
+PlayerMenuSoon.Parent = PlayerMenu
+PlayerMenuSoon.Name = "soon"
+PlayerMenuSoon.BackgroundColor3 = Color3.new(1, 1, 1)
+PlayerMenuSoon.Position = UDim2.new(0.027, 0, 0.704, 0)
+PlayerMenuSoon.Size = UDim2.new(0, 745, 0, 169)
+PlayerMenuSoon.TextScaled = true
+PlayerMenuSoon.TextColor3 = Color3.new(0, 0, 0)
+PlayerMenuSoon.Text = "Soon"
+PlayerMenuSoon.Visible = true
+
+local highlight = Instance.new("TextLabel")
+highlight.Parent = VisualMenu
+highlight.Name = "Highlight"
+highlight.BackgroundColor3 = Color3.new(0.196078, 0.196078, 0.196078)
+highlight.Position = UDim2.new(0.016, 0, 0.022, 0)
+highlight.Size = UDim2.new(0, 194, 0, 32)
+highlight.TextScaled = true
+highlight.TextColor3 = Color3.new(0.784314, 0.784314, 0.784314)
+highlight.Text = "Highlight"
+highlight.Visible = true
+
+local uichighlight = Instance.new("UICorner")
+uichighlight.Parent = highlight
+uichighlight.CornerRadius = UDim.new(0, 8)
+
+local highlightHow = Instance.new("ImageLabel")
+highlightHow.Parent = highlight
+highlightHow.Name = "how"
+highlightHow.Position = UDim2.new(1.077, 0, 0, 0)
+highlightHow.Size = UDim2.new(0, 32, 0, 32)
+highlightHow.Image = "rbxassetid://75772970732380"
+highlightHow.Visible = true
+
+local uichighlighthow = Instance.new("UICorner")
+uichighlighthow.Parent = highlightHow
+uichighlighthow.CornerRadius = UDim.new(8, 8)
+
+local highlightControl = Instance.new("Frame")
+highlightControl.Parent = highlight
+highlightControl.Name = "Control"
+highlightControl.BackgroundColor3 = Color3.new(0.611765, 0.611765, 0.611765)
+highlightControl.Position = UDim2.new(1.309, 0, 0, 0)
+highlightControl.Size = UDim2.new(0, 58, 0, 32)
+highlightControl.Visible = true
+
+local uichighlightcontrol = Instance.new("UICorner")
+uichighlightcontrol.Parent = highlightControl
+uichighlightcontrol.CornerRadius = UDim.new(8, 8)
+
+local highlightTurn = Instance.new("TextButton")
+highlightTurn.Parent = highlightControl
+highlightTurn.Name = "turn"
+highlightTurn.BackgroundColor3 = Color3.new(1, 0, 0)
+highlightTurn.Position = UDim2.new(0, 0, 0, 0)
+highlightTurn.Size = UDim2.new(0, 35, 0, 32)
+highlightTurn.Text = ""
+highlightTurn.Visible = true
+
+local uichighlightturn = Instance.new("UICorner")
+uichighlightturn.Parent = highlightTurn
+uichighlightturn.CornerRadius = UDim.new(8, 8)
+
+local VisualSoon = Instance.new("TextLabel")
+VisualSoon.Parent = VisualMenu
+VisualSoon.Name = "Soon"
+VisualSoon.BackgroundColor3 = Color3.new(1, 1, 1)
+VisualSoon.Position = UDim2.new(0.037, 0, 0.518, 0)
+VisualSoon.Size = UDim2.new(0, 715, 0, 250)
+VisualSoon.TextScaled = true
+VisualSoon.TextColor3 = Color3.new(0, 0, 0)
+VisualSoon.Text = "Soon"
+VisualSoon.Visible = true
+
 WorldList.MouseButton1Click:Connect(function()
-    if WorldMenu.Visible == false then
-       WorldMenu.Visible = true
-       PlayerMenu.Visible = false
-    else
-        return nil
-    end
+      for _, a in pairs(Menus:GetChildren()) do
+            if a:IsA("Frame") and a ~= WorldMenu then
+                  a.Visible = false
+                  WorldMenu.Visible = true
+            end
+      end
 end)
 
 PlayerList.MouseButton1Click:Connect(function()
-    if PlayerMenu.Visible == false then
-        PlayerMenu.Visible = true
-        WorldMenu.Visible = false
-    else
-        return nil
-    end
+      for _, a in pairs(Menus:GetChildren()) do
+            if a:IsA("Frame") and a ~= PlayerMenu then
+                  a.Visible = false
+                  PlayerMenu.Visible = true
+            end
+      end
+end)
+
+VisualList.MouseButton1Click:Connect(function()
+      for _, a in pairs(Menus:GetChildren()) do
+            if a:IsA("Frame") and a ~= VisualMenu then
+                  a.Visible = false
+                  VisualMenu.Visible = true
+            end
+      end
 end)
 
 FullbrightTurn.MouseButton1Click:Connect(function()
@@ -680,7 +1267,7 @@ FullbrightTurn.MouseButton1Click:Connect(function()
         fullbrightanim1.Completed:Connect(function()
             FullbrightTurn.BackgroundColor3 = Color3.new(0.0941176, 0.517647, 0)
         end)
-        fullbrightL(0.5)
+        fullbrightL(1)
      elseif functions.FullbrightF == true then
             functions.FullbrightF = false
             fullbrightL(0)
@@ -713,6 +1300,215 @@ TurnOpen_doors.MouseButton1Click:Connect(function()
             TurnOpen_doors.BackgroundColor3 = Color3.new(1, 0, 0)
         end)
     end
+end)
+
+nobarriersTurn.MouseButton1Click:Connect(function()
+    if functions.NoBarriersF == false then
+        functions.NoBarriersF = true
+        local nobarriersinfo1 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+        local nobarriersanim1 = tween:Create(nobarriersTurn, nobarriersinfo1, {Position = UDim2.new(0.388, 0, 0, 0)})
+        nobarriersanim1:Play()
+        nobarriersanim1.Completed:Connect(function()
+            nobarriersTurn.BackgroundColor3 = Color3.new(0.0941176, 0.517647, 0)
+        end)
+        nobarriersL(false)
+    elseif functions.NoBarriersF == true then
+        functions.NoBarriersF = false
+        local nobarriersinfo2 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+        local nobarriersanim2 = tween:Create(nobarriersTurn, nobarriersinfo2, {Position = UDim2.new(0, 0, 0, 0)})
+        nobarriersanim2:Play()
+        nobarriersanim2.Completed:Connect(function()
+            nobarriersTurn.BackgroundColor3 = Color3.new(1, 0, 0)
+        end)
+        nobarriersL(true)
+    end
+end)
+
+nogrinderTurn.MouseButton1Click:Connect(function()
+    if functions.NoGrinderF == false then
+        functions.NoGrinderF = true
+        local nogrinderinfo1 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+        local nogrinderanim1 = tween:Create(nogrinderTurn, nogrinderinfo1, {Position = UDim2.new(0.388, 0, 0, 0)})
+        nogrinderanim1:Play()
+        nogrinderanim1.Completed:Connect(function()
+            nogrinderTurn.BackgroundColor3 = Color3.new(0.0941176, 0.517647, 0)
+        end)
+        nogrinderL(false)
+    elseif functions.NoGrinderF == true then
+        functions.NoGrinderF = false
+        local nogrinderinfo2 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+        local nogrinderanim2 = tween:Create(nogrinderTurn, nogrinderinfo2, {Position = UDim2.new(0, 0, 0, 0)})
+        nogrinderanim2:Play()
+        nogrinderanim2.Completed:Connect(function()
+            nogrinderTurn.BackgroundColor3 = Color3.new(1, 0, 0)
+        end)
+        nogrinderL(true)
+    end
+end)
+
+local min1 = 0.08 * fovControl.AbsoluteSize.X
+local max1 = fovControl.AbsoluteSize.X
+
+local minfov = 30
+local maxfov = 120
+
+fovSlider.MouseButton1Down:Connect(function()
+    remotes.fovslider_dragging = true
+end)
+
+input.InputEnded:Connect(function(check)
+    if check.UserInputType == Enum.UserInputType.MouseButton1 then
+        remotes.fovslider_dragging = false
+    end
+end)
+
+input.InputChanged:Connect(function(check2)
+    if remotes.fovslider_dragging and check2.UserInputType == Enum.UserInputType.MouseMovement then
+        local mousepos = input:GetMouseLocation().X
+        local newsize = math.clamp(mousepos - fovControl.AbsolutePosition.X, min1, max1)
+        local btnSizeScale = newsize / fovControl.AbsoluteSize.X
+        fovSlider.Size = UDim2.new(btnSizeScale, 0, fovSlider.Size.Y.Scale, fovSlider.Size.Y.Offset)
+        local fovProgress = (newsize - min1) / (max1 - min1)
+        local fov = math.clamp(minfov + (fovProgress * (maxfov - minfov)), minfov, maxfov)
+        
+        if remotes.fov_connection then
+            remotes.fov_connection:Disconnect()
+        end
+        
+        remotes.fov_connection =  run.RenderStepped:Connect(function()
+            camera.FieldOfView = fov
+        end)
+    end
+end)
+
+local min2 = 0.08 * gravityControl.AbsoluteSize.X
+local max2 = gravityControl.AbsoluteSize.X
+
+local minGravity = 195
+local maxGravity = 75
+
+gravitySlider.MouseButton1Down:Connect(function()
+      remotes.gravityslider_dragging = true
+end)
+
+input.InputEnded:Connect(function(check3)
+      if check3.UserInputType == Enum.UserInputType.MouseButton1 then
+            remotes.gravityslider_dragging = false
+      end
+end)
+
+input.InputChanged:Connect(function(check4)
+      if remotes.gravityslider_dragging and check4.UserInputType == Enum.UserInputType.MouseMovement then
+            local mousepos = input:GetMouseLocation().X
+            local newsize = math.clamp(mousepos - gravityControl.AbsolutePosition.X, min2, max2)
+            local btnSizeScale = newsize / gravityControl.AbsoluteSize.X
+            gravitySlider.Size = UDim2.new(btnSizeScale, 0, gravitySlider.Size.Y.Scale, gravitySlider.Size.Y.Offset)
+            local gravityprogress = (newsize - min2) / (max2 - min2)
+            local Gravity = math.clamp(minGravity + (gravityprogress * (maxGravity - minGravity)), maxGravity, minGravity)
+            game.Workspace.Gravity = Gravity
+      end
+end)
+
+nofalldamageTurn.MouseButton1Click:Connect(function()
+      if functions.nofalldamage == false then
+            functions.nofalldamage = true
+            local nofalldamegeinfo1 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+            local nofalldamageanim1 = tween:Create(nofalldamageTurn, nofalldamegeinfo1, {Position = UDim2.new(0.388, 0, 0, 0)})
+            nofalldamageanim1:Play()
+            nofalldamageanim1.Completed:Connect(function()
+                  nofalldamageTurn.BackgroundColor3 = Color3.new(0.0941176, 0.517647, 0)
+            end)
+
+            local char1 = me.Character or me.CharacterAdded:Wait()
+            local force = Instance.new("ForceField")
+            force.Parent = char1
+            force.Visible = false
+
+            me.CharacterAdded:Connect(function(newChar)
+                  if functions.nofalldamage then
+                        local newForce = Instance.new("ForceField")
+                        newForce.Parent = newChar
+                        newForce.Visible = false
+                  end
+            end)
+      elseif functions.nofalldamage == true then
+            functions.nofalldamage = false
+            local nofalldamageinfo2 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+            local nofalldamageanim2 = tween:Create(nofalldamageTurn, nofalldamageinfo2, {Position = UDim2.new(0, 0, 0, 0)})
+            nofalldamageanim2:Play()
+            nofalldamageanim2.Completed:Connect(function()
+                  nofalldamageTurn.BackgroundColor3 = Color3.new(1, 0, 0)
+            end)
+
+            local char2 = me.Character or me.CharacterAdded:Wait()
+            local forceField = char2:FindFirstChildOfClass("ForceField")
+            if forceField then
+                  forceField:Destroy()
+            end
+      end
+end)
+
+highlightTurn.MouseButton1Click:Connect(function()
+      if functions.highlight == false then
+            functions.highlight = true
+            local highlightinfo1 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+            local highlightanim1 = tween:Create(highlightTurn, highlightinfo1, {Position = UDim2.new(0.388, 0, 0, 0)})
+            highlightanim1:Play()
+            highlightanim1.Completed:Connect(function()
+                  highlightTurn.BackgroundColor3 = Color3.new(0.0941176, 0.517647, 0)
+            end)
+            for _, a in pairs(plrs:GetPlayers()) do
+                  if a ~= me and functions.highlight and not a.Character:FindFirstChildOfClass("Highlight") then
+                        local char = a.Character or a.CharacterAdded:Wait()
+                        if char and not char:FindFirstChildOfClass("Highlight") then
+                              local highlightload = Instance.new("Highlight")
+                              highlightload.Parent = char
+                              highlightload.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                              highlightload.FillColor = Color3.new(1, 0, 0)
+                              highlightload.FillTransparency = 0.5
+                        end
+                        a.CharacterAdded:Connect(function(char)
+                              if char and functions.highlight then
+                                    if not char:FindFirstChildOfClass("Highlight") then
+                                          local highlightload = Instance.new("Highlight")
+                                          highlightload.Parent = char
+                                          highlightload.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                                          highlightload.FillColor = Color3.new(1, 0, 0)
+                                          highlightload.FillTransparency = 0.5
+                                    end
+                              end
+                        end)
+                  end
+            end
+            plrs.PlayerAdded:Connect(function(newPlayer)
+                  newPlayer.CharacterAdded:Connect(function(char)
+                        if functions.highlight and not char:FindFirstChildOfClass("Highlight") then
+                              local highlightload = Instance.new("Highlight")
+                              highlightload.Parent = char
+                              highlightload.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                              highlightload.FillColor = Color3.new(1, 0, 0)
+                              highlightload.FillTransparency = 0.5
+                        end
+                  end)
+            end)
+      elseif functions.highlight == true then
+            functions.highlight = false
+            local highlightinfo2 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+            local highlightanim2 = tween:Create(highlightTurn, highlightinfo2, {Position = UDim2.new(0, 0, 0, 0)})
+            highlightanim2:Play()
+            highlightanim2.Completed:Connect(function()
+                  highlightTurn.BackgroundColor3 = Color3.new(1, 0, 0)
+            end)
+            for _, a in pairs(plrs:GetPlayers()) do
+                  if a ~= me then
+                        local char = a.Character or a.CharacterAdded:Wait()
+                        local highlight = char:FindFirstChildOfClass("Highlight")
+                        if highlight then
+                              highlight:Destroy()
+                        end
+                  end
+            end
+      end
 end)
 
 input.InputBegan:Connect(function(key)
