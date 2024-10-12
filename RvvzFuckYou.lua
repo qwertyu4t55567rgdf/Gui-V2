@@ -18,6 +18,7 @@ local functions = {
     infstamina = nil;
     nofalldamage = false;
     highlight = false;
+    aimbot = false;
 }
 
 local remotes = {
@@ -27,13 +28,83 @@ local remotes = {
     gravityslider_dragging = false;
 }
 
+local function aimbotL()
+      local closestPlayer = nil
+      local aiming = false
+      local dist = math.huge
+
+      input.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton2 then
+                  aiming = true
+                  if not closestPlayer or closestPlayer.Character == nil or closestPlayer.Character.Humanoid.Health <= 0 then
+                        dist = math.huge
+                        for _, a in pairs(plrs:GetPlayers()) do
+                              if a ~= me and a.Character and a.Character:FindFirstChild("Head") then
+                                    local headPosition, onScreen = camera:WorldToScreenPoint(a.Character.Head.Position)
+                                    if onScreen then
+                                          local mousePos = game:GetService("UserInputService"):GetMouseLocation()
+                                          local mouseDistance = (Vector2.new(mousePos.X, mousePos.Y) - Vector2.new(headPosition.X, headPosition.Y)).Magnitude
+                                          if mouseDistance < dist then
+                                                dist = mouseDistance
+                                                closestPlayer = a
+                                          end
+                                    end
+                              end
+                        end
+                  end
+            end
+      end)
+
+      input.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton2 then
+                  aiming = false
+                  closestPlayer = nil
+                  dist = math.huge
+            end
+      end)
+
+      run.RenderStepped:Connect(function()
+            if aiming and closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("Head") then
+                  if closestPlayer.Character.Humanoid.Health > 0 then
+                        camera.CFrame = CFrame.new(camera.CFrame.Position, closestPlayer.Character.Head.Position)
+                  else
+                        closestPlayer = nil
+                        dist = math.huge
+                  end
+            end
+      end)
+end
+
+local function infstaminaL()
+      local StaminaTake = getrenv()._G.S_Take
+      local StaminaFunc = getupvalue(StaminaTake, 2)
+
+      for i, v in pairs(getupvalues(StaminaFunc)) do
+            if type(v) == "function" and getinfo(v).name == "Upt_S" then
+                  local OldFunction;
+                  OldFunction = hookfunction(v, function(...)
+                        if functions.infstamina then
+                              local CharacterVar = game:GetService("Players").LocalPlayer.Character
+                              if not CharacterVar or not CharacterVar.Parent then
+                                    local CharacterVar = game:GetService("Players").LocalPlayer.CharacterAdded:wait()
+                                    getupvalue(StaminaFunc, 6).S = 100
+                              elseif CharacterVar then
+                                    getupvalue(StaminaFunc, 6).S = 100
+                              end
+                        end
+                        return OldFunction(...)
+                  end)
+            end
+      end
+end
+
 local function fullbrightL(value)
     light.ExposureCompensation = value
 end
 
 local function open_doorsL()
         remotes.open_doorsRun = run.RenderStepped:Connect(function()
-        for _, i in pairs(game.Workspace.Map.Doors:GetChildren()) do
+        for _, i in pairs(game.Workspace:WaitForChild("Map").Doors:GetChildren()) do
             if (game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart").Position - i:FindFirstChild("DoorBase").Position).Magnitude <= 20 then
                 if i:FindFirstChild("Values"):FindFirstChild("Locked").Value == true then
                     i:FindFirstChild("Events"):FindFirstChild("Toggle"):FireServer("Unlock", i.Lock)
@@ -91,7 +162,7 @@ local function nogrinderL(value)
 end
 
 local Gui = Instance.new("ScreenGui")
-Gui.Parent = game.CoreGui
+Gui.Parent = me.PlayerGui
 Gui.Name = "New"
 Gui.Enabled = true
 Gui.ResetOnSpawn = false
@@ -235,7 +306,7 @@ MainList.Position = UDim2.new(0.054, 0, 0.19, 0)
 MainList.Size = UDim2.new(0, 176, 0, 38)
 MainList.TextColor3 = Color3.new(0.784314, 0.784314, 0.784314)
 MainList.TextScaled = true
-MainList.Text = "Main (soon)"
+MainList.Text = "Main"
 MainList.Visible = true
 
 local uicmainl = Instance.new("UICorner")
@@ -370,6 +441,14 @@ VisualMenu.BackgroundTransparency = 1
 VisualMenu.Position = UDim2.new(0.209, 0, 0.01, 0)
 VisualMenu.Size = UDim2.new(0, 774, 0, 598)
 VisualMenu.Visible = false
+
+local MainMenu = Instance.new("Frame")
+MainMenu.Parent = Menus
+MainMenu.Name = "Main"
+MainMenu.BackgroundTransparency = 1
+MainMenu.Position = UDim2.new(0.209, 0, 0.01, 0)
+MainMenu.Size = UDim2.new(0, 774, 0, 598)
+MainMenu.Visible = false
 
 local Fullbright = Instance.new("TextLabel")
 Fullbright.Parent = WorldMenu
@@ -1093,18 +1172,6 @@ local uicinfstaminaturn = Instance.new("UICorner")
 uicinfstaminaturn.Parent = infstaminaTurn
 uicinfstaminaturn.CornerRadius = UDim.new(8, 8)
 
-local infstaminaSoon = Instance.new("TextLabel")
-infstaminaSoon.Parent = infstamina
-infstaminaSoon.Name = "soon"
-infstaminaSoon.BackgroundTransparency = 1
-infstaminaSoon.BackgroundColor3 = Color3.new(1, 1, 1)
-infstaminaSoon.Position = UDim2.new(1.656, 0, 0, 0)
-infstaminaSoon.Size = UDim2.new(0, 89, 0, 32)
-infstaminaSoon.TextScaled = true
-infstaminaSoon.TextColor3 = Color3.new(1, 1, 1)
-infstaminaSoon.Text = "- soon"
-infstaminaSoon.Visible = true
-
 local nofalldamage = Instance.new("TextLabel")
 nofalldamage.Parent = PlayerMenu
 nofalldamage.Name = "nofalldamage"
@@ -1231,6 +1298,58 @@ VisualSoon.TextColor3 = Color3.new(0, 0, 0)
 VisualSoon.Text = "Soon"
 VisualSoon.Visible = true
 
+local Aimbot = Instance.new("TextLabel")
+Aimbot.Parent = MainMenu
+Aimbot.Name = "Aimbot"
+Aimbot.BackgroundColor3 = Color3.new(0.196078, 0.196078, 0.196078)
+Aimbot.Position = UDim2.new(0.016, 0, 0.022, 0)
+Aimbot.Size = UDim2.new(0, 194, 0, 32)
+Aimbot.TextScaled = true
+Aimbot.TextColor3 = Color3.new(0.784314, 0.784314, 0.784314)
+Aimbot.Text = "Aim bot"
+Aimbot.Visible = true
+
+local uicaimbot = Instance.new("UICorner")
+uicaimbot.Parent = Aimbot
+uicaimbot.CornerRadius = UDim.new(0, 8)
+
+local aimbotHow = Instance.new("ImageLabel")
+aimbotHow.Parent = Aimbot
+aimbotHow.Name = "how"
+aimbotHow.Position = UDim2.new(1.077, 0, 0, 0)
+aimbotHow.Size = UDim2.new(0, 32, 0, 32)
+aimbotHow.Image = "rbxassetid://75772970732380"
+aimbotHow.Visible = true
+
+local uicaimbothow = Instance.new("UICorner")
+uicaimbothow.Parent = aimbotHow
+uicaimbothow.CornerRadius = UDim.new(8, 8)
+
+local aimbotControl = Instance.new("Frame")
+aimbotControl.Parent = Aimbot
+aimbotControl.Name = "Control"
+aimbotControl.BackgroundColor3 = Color3.new(0.611765, 0.611765, 0.611765)
+aimbotControl.Position = UDim2.new(1.309, 0, 0, 0)
+aimbotControl.Size = UDim2.new(0, 58, 0, 32)
+aimbotControl.Visible = true
+
+local uicaimbotcontrol = Instance.new("UICorner")
+uicaimbotcontrol.Parent = aimbotControl
+uicaimbotcontrol.CornerRadius = UDim.new(8, 8)
+
+local aimbotTurn = Instance.new("TextButton")
+aimbotTurn.Parent = aimbotControl
+aimbotTurn.Name = "turn"
+aimbotTurn.BackgroundColor3 = Color3.new(1, 0, 0)
+aimbotTurn.Position = UDim2.new(0, 0, 0, 0)
+aimbotTurn.Size = UDim2.new(0, 35, 0, 32)
+aimbotTurn.Text = ""
+aimbotTurn.Visible = true
+
+local uicaimbotturn = Instance.new("UICorner")
+uicaimbotturn.Parent = aimbotTurn
+uicaimbotturn.CornerRadius = UDim.new(8, 8)
+
 WorldList.MouseButton1Click:Connect(function()
       for _, a in pairs(Menus:GetChildren()) do
             if a:IsA("Frame") and a ~= WorldMenu then
@@ -1254,6 +1373,15 @@ VisualList.MouseButton1Click:Connect(function()
             if a:IsA("Frame") and a ~= VisualMenu then
                   a.Visible = false
                   VisualMenu.Visible = true
+            end
+      end
+end)
+
+MainList.MouseButton1Click:Connect(function()
+      for _, a in pairs(Menus:GetChildren()) do
+            if a:IsA("Frame") and a ~= MainMenu then
+                  a.Visible = false
+                  MainMenu.Visible = true
             end
       end
 end)
@@ -1482,12 +1610,14 @@ highlightTurn.MouseButton1Click:Connect(function()
             end
             plrs.PlayerAdded:Connect(function(newPlayer)
                   newPlayer.CharacterAdded:Connect(function(char)
-                        if functions.highlight and not char:FindFirstChildOfClass("Highlight") then
-                              local highlightload = Instance.new("Highlight")
-                              highlightload.Parent = char
-                              highlightload.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                              highlightload.FillColor = Color3.new(1, 0, 0)
-                              highlightload.FillTransparency = 0.5
+                        if char and char:WaitForChild("Humanoid") then
+                              if functions.highlight and not char:FindFirstChildOfClass("Highlight") then
+                                    local highlightload = Instance.new("Highlight")
+                                    highlightload.Parent = char
+                                    highlightload.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                                    highlightload.FillColor = Color3.new(1, 0, 0)
+                                    highlightload.FillTransparency = 0.5
+                              end
                         end
                   end)
             end)
@@ -1508,6 +1638,48 @@ highlightTurn.MouseButton1Click:Connect(function()
                         end
                   end
             end
+      end
+end)
+
+infstaminaTurn.MouseButton1Click:Connect(function()
+      if functions.infstamina == false then
+            functions.infstamina = true
+            local infstaminainfo1 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+            local infstaminaanim1 = tween:Create(infstaminaTurn, infstaminainfo1, {Position = UDim2.new(0.388, 0, 0, 0)})
+            infstaminaanim1:Play()
+            infstaminaanim1.Completed:Connect(function()
+                  infstaminaTurn.BackgroundColor3 = Color3.new(0.0941176, 0.517647, 0)
+            end)
+            infstaminaL()
+      elseif functions.infstamina == true then
+            functions.infstamina = false
+            local infstaminainfo2 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+            local infstaminaanim2 = tween:Create(infstaminaTurn, infstaminainfo2, {Position = UDim2.new(0, 0, 0, 0)})
+            infstaminaanim2:Play()
+            infstaminaanim2.Completed:Connect(function()
+                  infstaminaTurn.BackgroundColor3 = Color3.new(1, 0, 0)
+            end)
+      end
+end)
+
+aimbotTurn.MouseButton1Click:Connect(function()
+      if functions.aimbot == false then
+            functions.aimbot = true
+            local aimbotinfo1 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+            local aimbotanim1 = tween:Create(aimbotTurn, aimbotinfo1, {Position = UDim2.new(0.388, 0, 0, 0)})
+            aimbotanim1:Play()
+            aimbotanim1.Completed:Connect(function()
+                  aimbotTurn.BackgroundColor3 = Color3.new(0.0941176, 0.517647, 0)
+            end)
+            aimbotL()
+      elseif functions.aimbot == true then
+            functions.aimbot = false
+            local aimbotinfo2 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+            local aimbotanim2 = tween:Create(aimbotTurn, aimbotinfo2, {Position = UDim2.new(0, 0, 0, 0)})
+            aimbotanim2:Play()
+            aimbotanim2.Completed:Connect(function()
+                  aimbotTurn.BackgroundColor3 = Color3.new(1, 0, 0)
+            end)
       end
 end)
 
