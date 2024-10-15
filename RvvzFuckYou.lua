@@ -14,11 +14,11 @@ local functions = {
     anti_voidF = nil;
     flyF = nil;
     glassbodyF = nil;
-    anti_fling = nil;
-    infstamina = nil;
-    nofalldamage = false;
-    highlight = false;
-    aimbot = false;
+    anti_flingF = nil;
+    infstaminaF = nil;
+    nofalldamageF = false;
+    highlightF = false;
+    aimbotF = false;
 }
 
 local remotes = {
@@ -26,7 +26,93 @@ local remotes = {
     fovslider_dragging = false;
     fov_connection;
     gravityslider_dragging = false;
+    highlighRun;
 }
+
+local function highlightL()
+      for _, a in pairs(plrs:GetPlayers()) do
+            if a ~= me then
+                  local hum = a.Character:FindFirstChild("Humanoid")
+                  if not hum then
+                        local humwait = a.Character:WaitForChild("Humanoid")
+                        if humwait then
+                              local highlight = Instance.new("Highlight")
+                              highlight.Parent = a.Character
+                              highlight.FillTransparency = 1
+                        end
+                  else
+                        task.wait()
+                        local highlight = Instance.new("Highlight")
+                        highlight.Parent = a.Character
+                        highlight.FillTransparency = 1
+                  end
+                  a.CharacterAdded:Connect(function(char)
+                        if char then
+                              local hum = char:FindFirstChild("Humanoid")
+                              if not hum then
+                                    local humwait = char:WaitForChild("Humanoid")
+                                    if humwait then
+                                          local highlight = Instance.new("Highlight")
+                                          highlight.Parent = char
+                                          highlight.FillTransparency = 1
+                                    end
+                              else
+                                    task.wait()
+                                    local highlight = Instance.new("Highlight")
+                                    highlight.Parent = char
+                                    highlight.FillTransparency = 1
+                              end
+                        end
+                  end)
+            end
+      end
+      
+      plrs.PlayerAdded:Connect(function(plr)
+            plr.CharacterAdded:Connect(function(char)
+                  if char then
+                        local hum = char:FindFirstChild("Humanoid")
+                        if not hum then
+                              local humwait = char:WaitForChild("Humanoid")
+                              if humwait then
+                                    local highlight = Instance.new("Highlight")
+                                    highlight.Parent = char
+                                    highlight.FillTransparency = 1
+                                    highlight.OutlineTransparency = 0
+                                    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                              end
+                        end
+                  else
+                        task.wait()
+                        local highlight = Instance.new("Highlight")
+                        highlight.Parent = char
+                        highlight.FillTransparency = 1
+                        highlight.OutlineTransparency = 0
+                        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                  end
+            end)
+            plr.CharacterAdded:Connect(function(char)
+                  if char then
+                        local hum = char:FindFirstChild("Humanoid")
+                        if not hum then
+                              local humwait = char:WaitForChild("Humanoid")
+                              if humwait then
+                                    local highlight = Instance.new("Highlight")
+                                    highlight.Parent = char
+                                    highlight.FillTransparency = 1
+                                    highlight.OutlineTransparency = 0
+                                    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                              end
+                        end
+                  else
+                        local highlight = Instance.new("Highlight")
+                        highlight.Parent = char
+                        highlight.FillTransparency = 1
+                        highlight.OutlineTransparency = 0
+                        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                  end
+            end)
+      end)
+end
 
 local function aimbotL()
       local closestPlayer = nil
@@ -65,7 +151,7 @@ local function aimbotL()
 
       run.RenderStepped:Connect(function()
             if aiming and closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("Head") then
-                  if closestPlayer.Character.Humanoid.Health > 0 then
+                  if closestPlayer.Character.Humanoid.Health > 0 and functions.aimbotF then
                         camera.CFrame = CFrame.new(camera.CFrame.Position, closestPlayer.Character.Head.Position)
                   else
                         closestPlayer = nil
@@ -83,7 +169,7 @@ local function infstaminaL()
             if type(v) == "function" and getinfo(v).name == "Upt_S" then
                   local OldFunction;
                   OldFunction = hookfunction(v, function(...)
-                        if functions.infstamina then
+                        if functions.infstaminaF then
                               local CharacterVar = game:GetService("Players").LocalPlayer.Character
                               if not CharacterVar or not CharacterVar.Parent then
                                     local CharacterVar = game:GetService("Players").LocalPlayer.CharacterAdded:wait()
@@ -157,7 +243,6 @@ local function nogrinderL(value)
             end
         end
     end
-
     findAndDisableParts()
 end
 
@@ -1538,8 +1623,8 @@ input.InputChanged:Connect(function(check4)
 end)
 
 nofalldamageTurn.MouseButton1Click:Connect(function()
-      if functions.nofalldamage == false then
-            functions.nofalldamage = true
+      if functions.nofalldamageF == false then
+            functions.nofalldamageF = true
             local nofalldamegeinfo1 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
             local nofalldamageanim1 = tween:Create(nofalldamageTurn, nofalldamegeinfo1, {Position = UDim2.new(0.388, 0, 0, 0)})
             nofalldamageanim1:Play()
@@ -1553,14 +1638,14 @@ nofalldamageTurn.MouseButton1Click:Connect(function()
             force.Visible = false
 
             me.CharacterAdded:Connect(function(newChar)
-                  if functions.nofalldamage then
+                  if functions.nofalldamageF then
                         local newForce = Instance.new("ForceField")
                         newForce.Parent = newChar
                         newForce.Visible = false
                   end
             end)
-      elseif functions.nofalldamage == true then
-            functions.nofalldamage = false
+      elseif functions.nofalldamageF == true then
+            functions.nofalldamageF = false
             local nofalldamageinfo2 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
             local nofalldamageanim2 = tween:Create(nofalldamageTurn, nofalldamageinfo2, {Position = UDim2.new(0, 0, 0, 0)})
             nofalldamageanim2:Play()
@@ -1577,73 +1662,40 @@ nofalldamageTurn.MouseButton1Click:Connect(function()
 end)
 
 highlightTurn.MouseButton1Click:Connect(function()
-      if functions.highlight == false then
-            functions.highlight = true
+      if functions.highlightF == false then
+            functions.highlightF = true
             local highlightinfo1 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
             local highlightanim1 = tween:Create(highlightTurn, highlightinfo1, {Position = UDim2.new(0.388, 0, 0, 0)})
             highlightanim1:Play()
             highlightanim1.Completed:Connect(function()
                   highlightTurn.BackgroundColor3 = Color3.new(0.0941176, 0.517647, 0)
             end)
-            for _, a in pairs(plrs:GetPlayers()) do
-                  if a ~= me and functions.highlight and not a.Character:FindFirstChildOfClass("Highlight") then
-                        local char = a.Character or a.CharacterAdded:Wait()
-                        if char and not char:FindFirstChildOfClass("Highlight") then
-                              local highlightload = Instance.new("Highlight")
-                              highlightload.Parent = char
-                              highlightload.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                              highlightload.FillColor = Color3.new(1, 0, 0)
-                              highlightload.FillTransparency = 0.5
-                        end
-                        a.CharacterAdded:Connect(function(char)
-                              if char and functions.highlight then
-                                    if not char:FindFirstChildOfClass("Highlight") then
-                                          local highlightload = Instance.new("Highlight")
-                                          highlightload.Parent = char
-                                          highlightload.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                                          highlightload.FillColor = Color3.new(1, 0, 0)
-                                          highlightload.FillTransparency = 0.5
-                                    end
-                              end
-                        end)
-                  end
+            if remotes.highlighRun then
+                  remotes.highlighRun:Disconnect()
             end
-            plrs.PlayerAdded:Connect(function(newPlayer)
-                  newPlayer.CharacterAdded:Connect(function(char)
-                        if char and char:WaitForChild("Humanoid") then
-                              if functions.highlight and not char:FindFirstChildOfClass("Highlight") then
-                                    local highlightload = Instance.new("Highlight")
-                                    highlightload.Parent = char
-                                    highlightload.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                                    highlightload.FillColor = Color3.new(1, 0, 0)
-                                    highlightload.FillTransparency = 0.5
-                              end
-                        end
-                  end)
-            end)
-      elseif functions.highlight == true then
-            functions.highlight = false
+            highlightL()
+      elseif functions.highlightF == true then
+            functions.highlightF = false
             local highlightinfo2 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
             local highlightanim2 = tween:Create(highlightTurn, highlightinfo2, {Position = UDim2.new(0, 0, 0, 0)})
             highlightanim2:Play()
             highlightanim2.Completed:Connect(function()
                   highlightTurn.BackgroundColor3 = Color3.new(1, 0, 0)
             end)
-            for _, a in pairs(plrs:GetPlayers()) do
-                  if a ~= me then
-                        local char = a.Character or a.CharacterAdded:Wait()
-                        local highlight = char:FindFirstChildOfClass("Highlight")
-                        if highlight then
-                              highlight:Destroy()
+            
+            remotes.highlighRun = run.RenderStepped:Connect(function()
+                  for _, a in pairs(plrs:GetPlayers()) do
+                        if a ~= me and a.Character and a.Character:FindFirstChildOfClass("Highlight") then
+                              a.Character:FindFirstChildOfClass("Highlight"):Destroy()
                         end
                   end
-            end
+            end)
       end
 end)
 
 infstaminaTurn.MouseButton1Click:Connect(function()
-      if functions.infstamina == false then
-            functions.infstamina = true
+      if functions.infstaminaF == false then
+            functions.infstaminaF = true
             local infstaminainfo1 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
             local infstaminaanim1 = tween:Create(infstaminaTurn, infstaminainfo1, {Position = UDim2.new(0.388, 0, 0, 0)})
             infstaminaanim1:Play()
@@ -1651,8 +1703,8 @@ infstaminaTurn.MouseButton1Click:Connect(function()
                   infstaminaTurn.BackgroundColor3 = Color3.new(0.0941176, 0.517647, 0)
             end)
             infstaminaL()
-      elseif functions.infstamina == true then
-            functions.infstamina = false
+      elseif functions.infstaminaF == true then
+            functions.infstaminaF = false
             local infstaminainfo2 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
             local infstaminaanim2 = tween:Create(infstaminaTurn, infstaminainfo2, {Position = UDim2.new(0, 0, 0, 0)})
             infstaminaanim2:Play()
@@ -1663,8 +1715,8 @@ infstaminaTurn.MouseButton1Click:Connect(function()
 end)
 
 aimbotTurn.MouseButton1Click:Connect(function()
-      if functions.aimbot == false then
-            functions.aimbot = true
+      if functions.aimbotF == false then
+            functions.aimbotF = true
             local aimbotinfo1 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
             local aimbotanim1 = tween:Create(aimbotTurn, aimbotinfo1, {Position = UDim2.new(0.388, 0, 0, 0)})
             aimbotanim1:Play()
@@ -1672,8 +1724,8 @@ aimbotTurn.MouseButton1Click:Connect(function()
                   aimbotTurn.BackgroundColor3 = Color3.new(0.0941176, 0.517647, 0)
             end)
             aimbotL()
-      elseif functions.aimbot == true then
-            functions.aimbot = false
+      elseif functions.aimbotF == true then
+            functions.aimbotF = false
             local aimbotinfo2 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
             local aimbotanim2 = tween:Create(aimbotTurn, aimbotinfo2, {Position = UDim2.new(0, 0, 0, 0)})
             aimbotanim2:Play()
