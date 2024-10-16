@@ -26,7 +26,6 @@ local remotes = {
     fovslider_dragging = false;
     fov_connection;
     gravityslider_dragging = false;
-    highlighRun;
 }
 
 local function highlightL()
@@ -34,30 +33,40 @@ local function highlightL()
             if a ~= me then
                   local hum = a.Character:FindFirstChild("Humanoid")
                   if not hum then
-                        local humwait = a.Character:WaitForChild("Humanoid")
-                        if humwait then
+                        local humanwait = a.Character:WaitForChild("Humanoid")
+                        local highlight = a.Character:FindFirstChild("Highlight")
+                        if not highlight then
+                              if functions.highlightF then
+                                    local highlight = Instance.new("Highlight")
+                                    highlight.Parent = a.Character
+                                    highlight.FillTransparency = 1
+                              end
+                        else
+                              return nil
+                        end
+                  else
+                        if functions.highlightF then
                               local highlight = Instance.new("Highlight")
                               highlight.Parent = a.Character
                               highlight.FillTransparency = 1
                         end
-                  else
-                        task.wait()
-                        local highlight = Instance.new("Highlight")
-                        highlight.Parent = a.Character
-                        highlight.FillTransparency = 1
                   end
                   a.CharacterAdded:Connect(function(char)
-                        if char then
-                              local hum = char:FindFirstChild("Humanoid")
-                              if not hum then
-                                    local humwait = char:WaitForChild("Humanoid")
-                                    if humwait then
+                        local hum = char:FindFirstChild("Humanoid")
+                        if not hum then
+                              local humanwait = char:WaitForChild("Humanoid")
+                              local highlight = char:FindFirstChild("Highlight")
+                              if not highlight then
+                                    if functions.highlightF then
                                           local highlight = Instance.new("Highlight")
                                           highlight.Parent = char
                                           highlight.FillTransparency = 1
                                     end
                               else
-                                    task.wait()
+                                    return nil
+                              end
+                        else
+                              if functions.highlightF then
                                     local highlight = Instance.new("Highlight")
                                     highlight.Parent = char
                                     highlight.FillTransparency = 1
@@ -69,46 +78,25 @@ local function highlightL()
       
       plrs.PlayerAdded:Connect(function(plr)
             plr.CharacterAdded:Connect(function(char)
-                  if char then
-                        local hum = char:FindFirstChild("Humanoid")
-                        if not hum then
-                              local humwait = char:WaitForChild("Humanoid")
-                              if humwait then
+                  local hum = char:FindFirstChild("Humanoid")
+                  if not hum then
+                        local humanwait = char:WaitForChild("Humanoid")
+                        local highlight = char:FindFirstChild("Highlight")
+                        if not highlight then
+                              if functions.highlightF then
                                     local highlight = Instance.new("Highlight")
                                     highlight.Parent = char
                                     highlight.FillTransparency = 1
-                                    highlight.OutlineTransparency = 0
-                                    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
                               end
+                        else
+                              return nil
                         end
                   else
-                        task.wait()
-                        local highlight = Instance.new("Highlight")
-                        highlight.Parent = char
-                        highlight.FillTransparency = 1
-                        highlight.OutlineTransparency = 0
-                        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-                  end
-            end)
-            plr.CharacterAdded:Connect(function(char)
-                  if char then
-                        local hum = char:FindFirstChild("Humanoid")
-                        if not hum then
-                              local humwait = char:WaitForChild("Humanoid")
-                              if humwait then
-                                    local highlight = Instance.new("Highlight")
-                                    highlight.Parent = char
-                                    highlight.FillTransparency = 1
-                                    highlight.OutlineTransparency = 0
-                                    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-                              end
+                        if functions.highlightF then
+                              local highlight = Instance.new("Highlight")
+                              highlight.Parent = char
+                              highlight.FillTransparency = 1
                         end
-                  else
-                        local highlight = Instance.new("Highlight")
-                        highlight.Parent = char
-                        highlight.FillTransparency = 1
-                        highlight.OutlineTransparency = 0
-                        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
                   end
             end)
       end)
@@ -1682,14 +1670,14 @@ highlightTurn.MouseButton1Click:Connect(function()
             highlightanim2.Completed:Connect(function()
                   highlightTurn.BackgroundColor3 = Color3.new(1, 0, 0)
             end)
-            
-            remotes.highlighRun = run.RenderStepped:Connect(function()
-                  for _, a in pairs(plrs:GetPlayers()) do
-                        if a ~= me and a.Character and a.Character:FindFirstChildOfClass("Highlight") then
-                              a.Character:FindFirstChildOfClass("Highlight"):Destroy()
+            for _, a in pairs(plrs:GetPlayers()) do
+                  if a ~= me then
+                        local highlight = a.Character:FindFirstChild("Highlight")
+                        if highlight then
+                              highlight:Destroy()
                         end
                   end
-            end)
+            end
       end
 end)
 
