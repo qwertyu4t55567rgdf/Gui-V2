@@ -1627,8 +1627,8 @@ highlightTurn.MouseButton1Click:Connect(function()
                   highlightTurn.BackgroundColor3 = Color3.new(1, 0, 0)
             end)
             for _, a in pairs(plrs:GetPlayers()) do
-                  if a ~= me then
-                        local highlight = a.Character:FindFirstChild("Highlight")
+                  if a ~= me and a.Character or a.CharacterAdded:Wait() then
+                        local highlight = a:FindFirstChild("Highlight")
                         if highlight then
                               highlight:Destroy()
                         end
