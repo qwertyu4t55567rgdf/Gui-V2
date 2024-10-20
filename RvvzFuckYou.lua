@@ -28,32 +28,56 @@ local remotes = {
     gravityslider_dragging = false;
 }
 
-local function highlightL(plr)
-      task.spawn(function()
-            if plr.Character or plr.CharacterAdded:Wait() and plr ~= me then
-                  repeat wait(1) until plr.Character:FindFirstChildOfClass("Humanoid") and plr.Character:FindFirstChild("HumanoidRootPart")
-                  local highlight = Instance.new("Highlight")
-                  highlight.Parent = plr.Character
-                  highlight.FillTransparency = 1
-                  plr.CharacterAdded:Connect(function(added)
-                        if added then
-                              repeat wait(1) until added:FindFirstChildOfClass("Humanoid") and added:FindFirstChild("HumanoidRootPart")
-                              local highlight = Instance.new("Highlight")
-                              highlight.Parent = added
-                              highlight.FillTransparency = 1
-                        end
+local function highlightL()
+      local FillColor = Color3.fromRGB(175,25,255)
+      local DepthMode = "AlwaysOnTop"
+      local FillTransparency = 0.5
+      local OutlineColor = Color3.fromRGB(255,255,255)
+      local OutlineTransparency = 0
+
+      local CoreGui = game:FindService("CoreGui")
+      local Players = game:FindService("Players")
+      local lp = Players.LocalPlayer
+      local connections = {}
+
+      local Storage = Instance.new("Folder")
+      Storage.Parent = CoreGui
+      Storage.Name = "Highlight_Storage"
+
+      local function Highlight(plr)
+            if functions.highlightF and plr ~= me then
+                  local Highlight = Instance.new("Highlight")
+                  Highlight.Name = plr.Name
+                  Highlight.DepthMode = DepthMode
+                  Highlight.FillTransparency = 1
+                  Highlight.Parent = Storage
+
+                  local plrchar = plr.Character
+                  if plrchar then
+                        Highlight.Adornee = plrchar
+                  end
+
+                  connections[plr] = plr.CharacterAdded:Connect(function(char)
+                        Highlight.Adornee = char
                   end)
             end
-            plrs.PlayerAdded:Connect(function(plr)
-                  plr.CharacterAdded:Connect(function(char)
-                        if char then
-                              repeat wait(1) until char:FindFirstChildOfClass("Humanoid") and char:FindFirstChild("Humanoid")
-                              local highlight = Instance.new("Highlight")
-                              highlight.Parent = char
-                              highlight.FillTransparency = 1
-                        end
-                  end)
-            end)
+      end
+
+      Players.PlayerAdded:Connect(Highlight)
+      for i,v in next, Players:GetPlayers() do
+            if functions.highlightF then
+                  Highlight(v)
+            end
+      end
+
+      Players.PlayerRemoving:Connect(function(plr)
+            local plrname = plr.Name
+            if Storage[plrname] then
+                  Storage[plrname]:Destroy()
+            end
+            if connections[plr] then
+                  connections[plr]:Disconnect()
+            end
       end)
 end
 
@@ -1614,8 +1638,16 @@ highlightTurn.MouseButton1Click:Connect(function()
                   highlightTurn.BackgroundColor3 = Color3.new(0.0941176, 0.517647, 0)
             end)
             for _, a in pairs(plrs:GetPlayers()) do
-                  if a ~= me and not a.Character:FindFirstChildOfClass("Highlight") then
-                        highlightL(a)
+                  if a ~= me then
+                        if a.Character then
+                              for _, b in pairs(a:GetChildren()) do
+                                    if not b:FindFirstChildOfClass("Highlight") then
+                                          highlightL(a)
+                                    else
+                                          return a
+                                    end
+                              end
+                        end
                   end
             end
       elseif functions.highlightF == true then
@@ -1626,12 +1658,10 @@ highlightTurn.MouseButton1Click:Connect(function()
             highlightanim2.Completed:Connect(function()
                   highlightTurn.BackgroundColor3 = Color3.new(1, 0, 0)
             end)
-            for _, a in pairs(plrs:GetPlayers()) do
-                  if a ~= me and a.Character or a.CharacterAdded:Wait() then
-                        local highlight = a:FindFirstChild("Highlight")
-                        if highlight then
-                              highlight:Destroy()
-                        end
+            local getservice = game:FindService("CoreGui")
+            for _, a in pairs(getservice:GetChildren()) do
+                  if a:IsA("Folder") and a.Name == "Highlight_Storage" then
+                        a:Destroy()
                   end
             end
       end
