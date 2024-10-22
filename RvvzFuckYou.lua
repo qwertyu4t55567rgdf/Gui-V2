@@ -1,5 +1,6 @@
 local plrs = game:GetService("Players")
 local me = plrs.LocalPlayer
+local mouse = me:GetMouse()
 local tween = game:GetService("TweenService")
 local light = game:GetService("Lighting")
 local input = game:GetService("UserInputService")
@@ -7,25 +8,25 @@ local run = game:GetService("RunService")
 local camera = game.Workspace.CurrentCamera
 
 local functions = {
-    FullbrightF = false;
-    AutoOpenDoorsF = false;
-    NoBarriersF = false;
-    NoGrinderF = false;
-    anti_voidF = nil;
-    flyF = nil;
-    glassbodyF = nil;
-    anti_flingF = nil;
-    infstaminaF = false;
-    nofalldamageF = false;
-    highlightF = false;
-    aimbotF = false;
+      FullbrightF = false;
+      AutoOpenDoorsF = false;
+      NoBarriersF = false;
+      NoGrinderF = false;
+      anti_voidF = nil;
+      flyF = nil;
+      glassbodyF = nil;
+      anti_flingF = nil;
+      infstaminaF = nil;
+      nofalldamageF = false;
+      highlightF = false;
+      aimbotF = false;
 }
 
 local remotes = {
-    open_doorsRun;
-    fovslider_dragging = false;
-    fov_connection;
-    gravityslider_dragging = false;
+      open_doorsRun;
+      fovslider_dragging = false;
+      fov_connection;
+      gravityslider_dragging = false;
 }
 
 local function highlightL()
@@ -82,47 +83,114 @@ local function highlightL()
 end
 
 local function aimbotL()
-      local closestPlayer = nil
-      local aiming = false
-      local dist = math.huge
+      local aimpart = "Head"
+      local target = nil
+      local radius = 50
+      local pressed = false
+      local aimtarget
+      local canusing = false
+      local FirstPerson = true
+      local velocity = true
+      local predict = 15
 
-      input.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton2 then
-                  aiming = true
-                  if not closestPlayer or closestPlayer.Character == nil or closestPlayer.Character.Humanoid.Health <= 0 then
-                        dist = math.huge
-                        for _, a in pairs(plrs:GetPlayers()) do
-                              if a ~= me and a.Character and a.Character:FindFirstChild("Head") then
-                                    local headPosition, onScreen = camera:WorldToScreenPoint(a.Character.Head.Position)
-                                    if onScreen then
-                                          local mousePos = game:GetService("UserInputService"):GetMouseLocation()
-                                          local mouseDistance = (Vector2.new(mousePos.X, mousePos.Y) - Vector2.new(headPosition.X, headPosition.Y)).Magnitude
-                                          if mouseDistance < dist then
-                                                dist = mouseDistance
-                                                closestPlayer = a
-                                          end
+      local viewport = function(P)
+            return camera:WorldToViewportPoint(P)
+      end
+
+      local screenpoint = function(P)
+            return camera:WorldToScreenPoint(P)
+      end
+
+      local getobject = function(T)
+            if T and T:FindFirstChild(aimpart) and me and me.Character:FindFirstChild("Head") then
+                  local ray = Ray.new(T[aimpart].Position, me.Character.Head.Position)
+                  local raypos = workspace:FindPartOnRay(ray)
+                  if raypos then
+                        return ray:IsDescendantOf(T)
+                  end
+            end
+      end
+
+      local gettarget = function()
+            local Players = {}
+            local player_hold = {}
+            local distances = {}
+            for _, a in pairs(plrs:GetPlayers()) do
+                  if a ~= me then
+                        table.insert(Players, a)
+                  end
+            end
+            for i, v in pairs(Players) do
+                  if v.Character ~= nil then
+                        local aim = v.Character:FindFirstChild("Head")
+                        local distance = (v.Character:FindFirstChild("Head").Position - camera.CFrame.p).Magnitude
+                        local ray = Ray.new(camera.CFrame.p, (mouse.Hit.p - camera.CFrame.p).Unit * distance)
+                        local hit, pos = game.Workspace:FindPartOnRay(ray, game.Workspace)
+                        local diff = math.floor((pos - aim.Position).Magnitude)
+                        player_hold[v.Name..i] = {}
+                        player_hold[v.Name..i].dist = distance
+                        player_hold[v.Name..i].plr = v
+                        player_hold[v.Name..i].diff = diff
+                        table.insert(distances, diff)
+                  end
+            end
+            if #distances == 0 then
+                  return nil
+            end
+
+            local l_distance = math.floor(math.min(unpack(distances)))
+            if l_distance > radius then
+                  return nil
+            end
+
+            for _, a in pairs(player_hold) do
+                  if a.diff == l_distance then
+                        return a.plr
+                  end
+            end
+            return nil
+      end
+
+      input.InputBegan:Connect(function(key)
+            if not (input:GetFocusedTextBox()) then
+                  if key.UserInputType == Enum.UserInputType.MouseButton2 then
+                        pcall(function()
+                              if pressed == false then
+                                    pressed = true
+                                    local target = gettarget()
+                                    if target ~= nil then
+                                          aimtarget = target
                                     end
                               end
-                        end
+                        end)
                   end
             end
       end)
 
-      input.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton2 then
-                  aiming = false
-                  closestPlayer = nil
-                  dist = math.huge
+      input.InputEnded:Connect(function(key)
+            if not (input:GetFocusedTextBox()) then
+                  if key.UserInputType == Enum.UserInputType.MouseButton2 then
+                        aimtarget = nil
+                        pressed = false
+                  end
             end
       end)
 
       run.RenderStepped:Connect(function()
-            if aiming and closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("Head") then
-                  if closestPlayer.Character.Humanoid.Health > 0 and functions.aimbotF then
-                        camera.CFrame = CFrame.new(camera.CFrame.Position, closestPlayer.Character.Head.Position)
-                  else
-                        closestPlayer = nil
-                        dist = math.huge
+            if FirstPerson == true then
+                  if (camera.Focus.p - camera.CoordinateFrame.p).Magnitude > 1 or me.CameraMode == Enum.CameraMode.LockFirstPerson then
+                        canusing = true
+                  end
+            end
+            if functions.aimbotF and pressed == true then
+                  if aimtarget and aimtarget.Character and aimtarget.Character:FindFirstChild(aimpart) then
+                        if FirstPerson == true then
+                              if canusing == true then
+                                    if velocity == true then
+                                          camera.CFrame = CFrame.new(camera.CFrame.p, aimtarget.Character[aimpart].Position + aimtarget.Character[aimpart].Velocity / predict)
+                                    end
+                              end
+                        end
                   end
             end
       end)
@@ -136,7 +204,7 @@ local function infstaminaL()
             if type(v) == "function" and getinfo(v).name == "Upt_S" then
                   local OldFunction;
                   OldFunction = hookfunction(v, function(...)
-                        if functions.infstaminaF then
+                        if functions.infstaminaF == true then
                               local CharacterVar = game:GetService("Players").LocalPlayer.Character
                               if not CharacterVar or not CharacterVar.Parent then
                                     local CharacterVar = game:GetService("Players").LocalPlayer.CharacterAdded:wait()
@@ -152,65 +220,65 @@ local function infstaminaL()
 end
 
 local function fullbrightL(value)
-    light.ExposureCompensation = value
+      light.ExposureCompensation = value
 end
 
 local function open_doorsL()
-        remotes.open_doorsRun = run.RenderStepped:Connect(function()
-        for _, i in pairs(game.Workspace:WaitForChild("Map").Doors:GetChildren()) do
-            if (game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart").Position - i:FindFirstChild("DoorBase").Position).Magnitude <= 20 then
-                if i:FindFirstChild("Values"):FindFirstChild("Locked").Value == true then
-                    i:FindFirstChild("Events"):FindFirstChild("Toggle"):FireServer("Unlock", i.Lock)
-                    i:FindFirstChild("Events"):FindFirstChild("Toggle"):FireServer("Open", i.Lock)
-                end
+      remotes.open_doorsRun = run.RenderStepped:Connect(function()
+            for _, i in pairs(game.Workspace:WaitForChild("Map").Doors:GetChildren()) do
+                  if (game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart").Position - i:FindFirstChild("DoorBase").Position).Magnitude <= 20 then
+                        if i:FindFirstChild("Values"):FindFirstChild("Locked").Value == true then
+                              i:FindFirstChild("Events"):FindFirstChild("Toggle"):FireServer("Unlock", i.Lock)
+                              i:FindFirstChild("Events"):FindFirstChild("Toggle"):FireServer("Open", i.Lock)
+                        end
+                  end
             end
-        end
-    end)
+      end)
 end
 
 local function nobarriersL(value)
-    local function disableTouchAndQuery(part)
-        if part:IsA("BasePart") then
-            part.CanTouch = value
-            part.CanQuery = value
-        end
-    end
-
-    local function findAndDisableParts()
-        local partNames = {"BarbedWire", "RG_Part", "Spike"}
-
-        for _, partName in ipairs(partNames) do
-            for _, part in pairs(game.Workspace:GetDescendants()) do
-                if part.Name == partName then
-                    disableTouchAndQuery(part)
-                end
+      local function disableTouchAndQuery(part)
+            if part:IsA("BasePart") then
+                  part.CanTouch = value
+                  part.CanQuery = value
             end
-        end
-    end
+      end
 
-    findAndDisableParts()
+      local function findAndDisableParts()
+            local partNames = {"BarbedWire", "RG_Part", "Spike"}
+
+            for _, partName in ipairs(partNames) do
+                  for _, part in pairs(game.Workspace:GetDescendants()) do
+                        if part.Name == partName then
+                              disableTouchAndQuery(part)
+                        end
+                  end
+            end
+      end
+
+      findAndDisableParts()
 end
 
 local function nogrinderL(value)
-    local function disableTouchAndQuery(part)
-        if part:IsA("BasePart") then
-            part.CanTouch = value
-            part.CanQuery = value
-        end
-    end
-
-    local function findAndDisableParts()
-        local partNames = {"FirePart", "Grinder"}
-
-        for _, partName in ipairs(partNames) do
-            for _, part in pairs(game.Workspace:GetDescendants()) do
-                if part.Name == partName then
-                    disableTouchAndQuery(part)
-                end
+      local function disableTouchAndQuery(part)
+            if part:IsA("BasePart") then
+                  part.CanTouch = value
+                  part.CanQuery = value
             end
-        end
-    end
-    findAndDisableParts()
+      end
+
+      local function findAndDisableParts()
+            local partNames = {"FirePart", "Grinder"}
+
+            for _, partName in ipairs(partNames) do
+                  for _, part in pairs(game.Workspace:GetDescendants()) do
+                        if part.Name == partName then
+                              disableTouchAndQuery(part)
+                        end
+                  end
+            end
+      end
+      findAndDisableParts()
 end
 
 local Gui = Instance.new("ScreenGui")
@@ -1439,91 +1507,91 @@ MainList.MouseButton1Click:Connect(function()
 end)
 
 FullbrightTurn.MouseButton1Click:Connect(function()
-    if functions.FullbrightF == false then
-        functions.FullbrightF = true
-        local fullbrightinfo1 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
-        local fullbrightanim1 = tween:Create(FullbrightTurn, fullbrightinfo1, {Position = UDim2.new(0.388, 0, 0, 0)})
-        fullbrightanim1:Play()
-        fullbrightanim1.Completed:Connect(function()
-            FullbrightTurn.BackgroundColor3 = Color3.new(0.0941176, 0.517647, 0)
-        end)
-        fullbrightL(1)
-     elseif functions.FullbrightF == true then
+      if functions.FullbrightF == false then
+            functions.FullbrightF = true
+            local fullbrightinfo1 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+            local fullbrightanim1 = tween:Create(FullbrightTurn, fullbrightinfo1, {Position = UDim2.new(0.388, 0, 0, 0)})
+            fullbrightanim1:Play()
+            fullbrightanim1.Completed:Connect(function()
+                  FullbrightTurn.BackgroundColor3 = Color3.new(0.0941176, 0.517647, 0)
+            end)
+            fullbrightL(1)
+      elseif functions.FullbrightF == true then
             functions.FullbrightF = false
             fullbrightL(0)
             local fullbrightinfo2 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
             local fullbrightanim2 = tween:Create(FullbrightTurn, fullbrightinfo2, {Position = UDim2.new(0, 0, 0, 0)})
             fullbrightanim2:Play()
             fullbrightanim2.Completed:Connect(function()
-            FullbrightTurn.BackgroundColor3 = Color3.new(1, 0, 0)
-        end)
-    end
+                  FullbrightTurn.BackgroundColor3 = Color3.new(1, 0, 0)
+            end)
+      end
 end)
 
 TurnOpen_doors.MouseButton1Click:Connect(function()
-    if functions.AutoOpenDoorsF == false then
-        functions.AutoOpenDoorsF = true
-        open_doorsL()
-        local openDoorsinfo1 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
-        local openDoorsanim1 = tween:Create(TurnOpen_doors, openDoorsinfo1, {Position = UDim2.new(0.388, 0, 0, 0)})
-        openDoorsanim1:Play()
-        openDoorsanim1.Completed:Connect(function()
-        TurnOpen_doors.BackgroundColor3 = Color3.new(0.0941176, 0.517647, 0)
-        end)
-    elseif functions.AutoOpenDoorsF == true then
-        functions.AutoOpenDoorsF = false
-        remotes.open_doorsRun:Disconnect()
-        local openDoorsinfo2 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
-        local openDoorsanim2 = tween:Create(TurnOpen_doors, openDoorsinfo2, {Position = UDim2.new(0, 0, 0, 0)})
-        openDoorsanim2:Play()
-        openDoorsanim2.Completed:Connect(function()
-            TurnOpen_doors.BackgroundColor3 = Color3.new(1, 0, 0)
-        end)
-    end
+      if functions.AutoOpenDoorsF == false then
+            functions.AutoOpenDoorsF = true
+            open_doorsL()
+            local openDoorsinfo1 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+            local openDoorsanim1 = tween:Create(TurnOpen_doors, openDoorsinfo1, {Position = UDim2.new(0.388, 0, 0, 0)})
+            openDoorsanim1:Play()
+            openDoorsanim1.Completed:Connect(function()
+                  TurnOpen_doors.BackgroundColor3 = Color3.new(0.0941176, 0.517647, 0)
+            end)
+      elseif functions.AutoOpenDoorsF == true then
+            functions.AutoOpenDoorsF = false
+            remotes.open_doorsRun:Disconnect()
+            local openDoorsinfo2 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+            local openDoorsanim2 = tween:Create(TurnOpen_doors, openDoorsinfo2, {Position = UDim2.new(0, 0, 0, 0)})
+            openDoorsanim2:Play()
+            openDoorsanim2.Completed:Connect(function()
+                  TurnOpen_doors.BackgroundColor3 = Color3.new(1, 0, 0)
+            end)
+      end
 end)
 
 nobarriersTurn.MouseButton1Click:Connect(function()
-    if functions.NoBarriersF == false then
-        functions.NoBarriersF = true
-        local nobarriersinfo1 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
-        local nobarriersanim1 = tween:Create(nobarriersTurn, nobarriersinfo1, {Position = UDim2.new(0.388, 0, 0, 0)})
-        nobarriersanim1:Play()
-        nobarriersanim1.Completed:Connect(function()
-            nobarriersTurn.BackgroundColor3 = Color3.new(0.0941176, 0.517647, 0)
-        end)
-        nobarriersL(false)
-    elseif functions.NoBarriersF == true then
-        functions.NoBarriersF = false
-        local nobarriersinfo2 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
-        local nobarriersanim2 = tween:Create(nobarriersTurn, nobarriersinfo2, {Position = UDim2.new(0, 0, 0, 0)})
-        nobarriersanim2:Play()
-        nobarriersanim2.Completed:Connect(function()
-            nobarriersTurn.BackgroundColor3 = Color3.new(1, 0, 0)
-        end)
-        nobarriersL(true)
-    end
+      if functions.NoBarriersF == false then
+            functions.NoBarriersF = true
+            local nobarriersinfo1 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+            local nobarriersanim1 = tween:Create(nobarriersTurn, nobarriersinfo1, {Position = UDim2.new(0.388, 0, 0, 0)})
+            nobarriersanim1:Play()
+            nobarriersanim1.Completed:Connect(function()
+                  nobarriersTurn.BackgroundColor3 = Color3.new(0.0941176, 0.517647, 0)
+            end)
+            nobarriersL(false)
+      elseif functions.NoBarriersF == true then
+            functions.NoBarriersF = false
+            local nobarriersinfo2 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+            local nobarriersanim2 = tween:Create(nobarriersTurn, nobarriersinfo2, {Position = UDim2.new(0, 0, 0, 0)})
+            nobarriersanim2:Play()
+            nobarriersanim2.Completed:Connect(function()
+                  nobarriersTurn.BackgroundColor3 = Color3.new(1, 0, 0)
+            end)
+            nobarriersL(true)
+      end
 end)
 
 nogrinderTurn.MouseButton1Click:Connect(function()
-    if functions.NoGrinderF == false then
-        functions.NoGrinderF = true
-        local nogrinderinfo1 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
-        local nogrinderanim1 = tween:Create(nogrinderTurn, nogrinderinfo1, {Position = UDim2.new(0.388, 0, 0, 0)})
-        nogrinderanim1:Play()
-        nogrinderanim1.Completed:Connect(function()
-            nogrinderTurn.BackgroundColor3 = Color3.new(0.0941176, 0.517647, 0)
-        end)
-        nogrinderL(false)
-    elseif functions.NoGrinderF == true then
-        functions.NoGrinderF = false
-        local nogrinderinfo2 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
-        local nogrinderanim2 = tween:Create(nogrinderTurn, nogrinderinfo2, {Position = UDim2.new(0, 0, 0, 0)})
-        nogrinderanim2:Play()
-        nogrinderanim2.Completed:Connect(function()
-            nogrinderTurn.BackgroundColor3 = Color3.new(1, 0, 0)
-        end)
-        nogrinderL(true)
-    end
+      if functions.NoGrinderF == false then
+            functions.NoGrinderF = true
+            local nogrinderinfo1 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+            local nogrinderanim1 = tween:Create(nogrinderTurn, nogrinderinfo1, {Position = UDim2.new(0.388, 0, 0, 0)})
+            nogrinderanim1:Play()
+            nogrinderanim1.Completed:Connect(function()
+                  nogrinderTurn.BackgroundColor3 = Color3.new(0.0941176, 0.517647, 0)
+            end)
+            nogrinderL(false)
+      elseif functions.NoGrinderF == true then
+            functions.NoGrinderF = false
+            local nogrinderinfo2 = TweenInfo.new(0.1, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
+            local nogrinderanim2 = tween:Create(nogrinderTurn, nogrinderinfo2, {Position = UDim2.new(0, 0, 0, 0)})
+            nogrinderanim2:Play()
+            nogrinderanim2.Completed:Connect(function()
+                  nogrinderTurn.BackgroundColor3 = Color3.new(1, 0, 0)
+            end)
+            nogrinderL(true)
+      end
 end)
 
 local min1 = 0.08 * fovControl.AbsoluteSize.X
@@ -1533,32 +1601,32 @@ local minfov = 30
 local maxfov = 120
 
 fovSlider.MouseButton1Down:Connect(function()
-    remotes.fovslider_dragging = true
+      remotes.fovslider_dragging = true
 end)
 
 input.InputEnded:Connect(function(check)
-    if check.UserInputType == Enum.UserInputType.MouseButton1 then
-        remotes.fovslider_dragging = false
-    end
+      if check.UserInputType == Enum.UserInputType.MouseButton1 then
+            remotes.fovslider_dragging = false
+      end
 end)
 
 input.InputChanged:Connect(function(check2)
-    if remotes.fovslider_dragging and check2.UserInputType == Enum.UserInputType.MouseMovement then
-        local mousepos = input:GetMouseLocation().X
-        local newsize = math.clamp(mousepos - fovControl.AbsolutePosition.X, min1, max1)
-        local btnSizeScale = newsize / fovControl.AbsoluteSize.X
-        fovSlider.Size = UDim2.new(btnSizeScale, 0, fovSlider.Size.Y.Scale, fovSlider.Size.Y.Offset)
-        local fovProgress = (newsize - min1) / (max1 - min1)
-        local fov = math.clamp(minfov + (fovProgress * (maxfov - minfov)), minfov, maxfov)
-        
-        if remotes.fov_connection then
-            remotes.fov_connection:Disconnect()
-        end
-        
-        remotes.fov_connection =  run.RenderStepped:Connect(function()
-            camera.FieldOfView = fov
-        end)
-    end
+      if remotes.fovslider_dragging and check2.UserInputType == Enum.UserInputType.MouseMovement then
+            local mousepos = input:GetMouseLocation().X
+            local newsize = math.clamp(mousepos - fovControl.AbsolutePosition.X, min1, max1)
+            local btnSizeScale = newsize / fovControl.AbsoluteSize.X
+            fovSlider.Size = UDim2.new(btnSizeScale, 0, fovSlider.Size.Y.Scale, fovSlider.Size.Y.Offset)
+            local fovProgress = (newsize - min1) / (max1 - min1)
+            local fov = math.clamp(minfov + (fovProgress * (maxfov - minfov)), minfov, maxfov)
+
+            if remotes.fov_connection then
+                  remotes.fov_connection:Disconnect()
+            end
+
+            remotes.fov_connection =  run.RenderStepped:Connect(function()
+                  camera.FieldOfView = fov
+            end)
+      end
 end)
 
 local min2 = 0.08 * gravityControl.AbsoluteSize.X
@@ -1710,35 +1778,35 @@ aimbotTurn.MouseButton1Click:Connect(function()
 end)
 
 input.InputBegan:Connect(function(key)
-    if key.KeyCode == Enum.KeyCode.Insert then
-        if mainframe.Visible == true then
-            mainframe.Visible = false
-        else
-            mainframe.Visible = true
-        end
-    end
+      if key.KeyCode == Enum.KeyCode.Insert then
+            if mainframe.Visible == true then
+                  mainframe.Visible = false
+            else
+                  mainframe.Visible = true
+            end
+      end
 end)
 
 local cfg1 = {
-	Rotation = 360
+      Rotation = 360
 }
 
 uiguist.Color = ColorSequence.new({
-	ColorSequenceKeypoint.new(0.0, Color3.new(1, 0, 0.0156863)),
-	ColorSequenceKeypoint.new(0.2, Color3.new(0.933333, 0.0235294, 1)),
-	ColorSequenceKeypoint.new(0.4, Color3.new(0, 0.0156863, 1)),
-	ColorSequenceKeypoint.new(0.6, Color3.new(0.0666667, 1, 0)),
-	ColorSequenceKeypoint.new(0.8, Color3.new(1, 0.933333, 0.00392157)),
-	ColorSequenceKeypoint.new(1, Color3.new(0.00392157, 1, 0.933333))
+      ColorSequenceKeypoint.new(0.0, Color3.new(1, 0, 0.0156863)),
+      ColorSequenceKeypoint.new(0.2, Color3.new(0.933333, 0.0235294, 1)),
+      ColorSequenceKeypoint.new(0.4, Color3.new(0, 0.0156863, 1)),
+      ColorSequenceKeypoint.new(0.6, Color3.new(0.0666667, 1, 0)),
+      ColorSequenceKeypoint.new(0.8, Color3.new(1, 0.933333, 0.00392157)),
+      ColorSequenceKeypoint.new(1, Color3.new(0.00392157, 1, 0.933333))
 })
 
 uigb.Color = ColorSequence.new({
-	ColorSequenceKeypoint.new(0.0, Color3.new(0.729412, 0.231373, 0)),
-	ColorSequenceKeypoint.new(0.2, Color3.new(0.729412, 0.231373, 0)),
-	ColorSequenceKeypoint.new(0.4, Color3.new(0.729412, 0.231373, 0)),
-	ColorSequenceKeypoint.new(0.6, Color3.new(1, 1, 1)),
-	ColorSequenceKeypoint.new(0.8, Color3.new(1, 1, 1)),
-	ColorSequenceKeypoint.new(1, Color3.new(1, 1, 1))
+      ColorSequenceKeypoint.new(0.0, Color3.new(0.729412, 0.231373, 0)),
+      ColorSequenceKeypoint.new(0.2, Color3.new(0.729412, 0.231373, 0)),
+      ColorSequenceKeypoint.new(0.4, Color3.new(0.729412, 0.231373, 0)),
+      ColorSequenceKeypoint.new(0.6, Color3.new(1, 1, 1)),
+      ColorSequenceKeypoint.new(0.8, Color3.new(1, 1, 1)),
+      ColorSequenceKeypoint.new(1, Color3.new(1, 1, 1))
 })
 
 local bittween = TweenInfo.new(3, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, 3 , true)
@@ -1746,14 +1814,14 @@ local bittweenanim = tween:Create(uiguist, bittween, cfg1)
 bittweenanim:Play()
 
 bittweenanim.Completed:Connect(function()
-	beta.TextColor3 = Color3.new(1, 1, 1)
-	local uitextinfo = TweenInfo.new(3, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, 3, true)
-	local uitextanim = tween:Create(uigb, uitextinfo, cfg1)
-	uitextanim:Play()
-	uiguist.Enabled = false
-	uitextanim.Completed:Connect(function()
-		beta.TextColor3 = Color3.new(0, 0, 0)
-		uiguist.Enabled = true
-		bittweenanim:Play()
-	end)
+      beta.TextColor3 = Color3.new(1, 1, 1)
+      local uitextinfo = TweenInfo.new(3, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, 3, true)
+      local uitextanim = tween:Create(uigb, uitextinfo, cfg1)
+      uitextanim:Play()
+      uiguist.Enabled = false
+      uitextanim.Completed:Connect(function()
+            beta.TextColor3 = Color3.new(0, 0, 0)
+            uiguist.Enabled = true
+            bittweenanim:Play()
+      end)
 end)
