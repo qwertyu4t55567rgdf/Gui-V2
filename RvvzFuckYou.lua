@@ -75,6 +75,8 @@ local function highlightL()
             local plrname = plr.Name
             if Storage[plrname] then
                   Storage[plrname]:Destroy()
+            else
+                  return nil
             end
             if connections[plr] then
                   connections[plr]:Disconnect()
@@ -84,111 +86,54 @@ end
 
 local function aimbotL()
       local aimpart = "Head"
-      local target = nil
-      local radius = 50
-      local pressed = false
-      local aimtarget
-      local canusing = false
       local FirstPerson = true
-      local velocity = true
-      local predict = 15
-
-      local viewport = function(P)
-            return camera:WorldToViewportPoint(P)
-      end
-
-      local screenpoint = function(P)
-            return camera:WorldToScreenPoint(P)
-      end
-
-      local getobject = function(T)
-            if T and T:FindFirstChild(aimpart) and me and me.Character:FindFirstChild("Head") then
-                  local ray = Ray.new(T[aimpart].Position, me.Character.Head.Position)
-                  local raypos = workspace:FindPartOnRay(ray)
-                  if raypos then
-                        return ray:IsDescendantOf(T)
-                  end
-            end
-      end
-
-      local gettarget = function()
-            local Players = {}
-            local player_hold = {}
-            local distances = {}
-            for _, a in pairs(plrs:GetPlayers()) do
-                  if a ~= me then
-                        table.insert(Players, a)
-                  end
-            end
-            for i, v in pairs(Players) do
-                  if v.Character ~= nil then
-                        local aim = v.Character:FindFirstChild("Head")
-                        local distance = (v.Character:FindFirstChild("Head").Position - camera.CFrame.p).Magnitude
-                        local ray = Ray.new(camera.CFrame.p, (mouse.Hit.p - camera.CFrame.p).Unit * distance)
-                        local hit, pos = game.Workspace:FindPartOnRay(ray, game.Workspace)
-                        local diff = math.floor((pos - aim.Position).Magnitude)
-                        player_hold[v.Name..i] = {}
-                        player_hold[v.Name..i].dist = distance
-                        player_hold[v.Name..i].plr = v
-                        player_hold[v.Name..i].diff = diff
-                        table.insert(distances, diff)
-                  end
-            end
-            if #distances == 0 then
-                  return nil
-            end
-
-            local l_distance = math.floor(math.min(unpack(distances)))
-            if l_distance > radius then
-                  return nil
-            end
-
-            for _, a in pairs(player_hold) do
-                  if a.diff == l_distance then
-                        return a.plr
-                  end
-            end
-            return nil
-      end
-
+      local target
+      local velocity = 15
+      local aiming = false
+      local dist = math.huge
+      
       input.InputBegan:Connect(function(key)
             if not (input:GetFocusedTextBox()) then
-                  if key.UserInputType == Enum.UserInputType.MouseButton2 then
-                        pcall(function()
-                              if pressed == false then
-                                    pressed = true
-                                    local target = gettarget()
-                                    if target ~= nil then
-                                          aimtarget = target
-                                    end
-                              end
-                        end)
+                  if key.UserInputType == Enum.UserInputType.MouseButton2 and functions.aimbotF then
+                        if aiming == false then
+                              aiming = true
+                        else
+                              return nil
+                        end
                   end
             end
       end)
-
       input.InputEnded:Connect(function(key)
             if not (input:GetFocusedTextBox()) then
                   if key.UserInputType == Enum.UserInputType.MouseButton2 then
-                        aimtarget = nil
-                        pressed = false
+                        if aiming == true then
+                              aiming = false
+                        else
+                              return nil
+                        end
                   end
             end
       end)
-
       run.RenderStepped:Connect(function()
-            if FirstPerson == true then
-                  if (camera.Focus.p - camera.CoordinateFrame.p).Magnitude > 1 or me.CameraMode == Enum.CameraMode.LockFirstPerson then
-                        canusing = true
-                  end
-            end
-            if functions.aimbotF and pressed == true then
-                  if aimtarget and aimtarget.Character and aimtarget.Character:FindFirstChild(aimpart) then
+            if functions.aimbotF then
+                  if aiming == true then
                         if FirstPerson == true then
-                              if canusing == true then
-                                    if velocity == true then
-                                          camera.CFrame = CFrame.new(camera.CFrame.p, aimtarget.Character[aimpart].Position + aimtarget.Character[aimpart].Velocity / predict)
+                              if camera.Focus.p > 1 or me.CameraMode == Enum.CameraMode.LockFirstPerson then
+                                    for _, a in pairs(plrs:GetPlayers()) do
+                                          if a ~= me then
+                                                local show, hiden = camera:WorldToViewportPoint(a.Character[aimpart].Position)
+                                                if show then
+                                                      if a.Character and a.Character[aimpart] then
+                                                            local mousepos = (input:GetMouseLocation().Unit - a.Character[aimpart].Position).Magnitude
+                                                            if mousepos < dist then
+                                                                  dist = mousepos
+                                                                  target = a.Character[aimpart]
+                                                            end
+                                                      end
+                                                end
+                                          end
                                     end
+                                    camera.CFrame = CFrame.new(camera.CFrame.p, target.Character[aimpart].Position + target.Character[aimpart].Velocity/velocity)
                               end
                         end
                   end
