@@ -296,7 +296,7 @@ local function nogrinderL(value)
 end
 
 local Gui = Instance.new("ScreenGui")
-Gui.Parent = me.PlayerGui
+Gui.Parent = game.CoreGui
 Gui.Name = "New"
 Gui.Enabled = true
 Gui.ResetOnSpawn = false
