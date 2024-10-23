@@ -18,7 +18,7 @@ local functions = {
       anti_flingF = nil;
       infstaminaF = nil;
       nofalldamageF = false;
-      highlightF = nil;
+      highlightF = false;
       aimbotF = false;
 }
 
@@ -69,7 +69,8 @@ local function highlightL()
 
       Players.PlayerAdded:Connect(Highlight)
       for i, v in pairs(Players:GetPlayers()) do
-            if functions.highlightF then
+            if v.Character and functions.highlightF then
+                  wait()
                   Highlight(v)
             end
       end
@@ -184,8 +185,11 @@ local function aimbotL()
 
       run.RenderStepped:Connect(function()
             if FirstPerson == true then
-                  if (camera.Focus.p - camera.CoordinateFrame.p).Magnitude <= 1 then
+                  local magnitude = (camera.Focus.p - camera.CoordinateFrame.p).Magnitude
+                  if magnitude <= 1 then
                         canusing = true
+                  else
+                        canusing = false
                   end
             end
 
