@@ -189,7 +189,7 @@ local function aimbotL()
       run.RenderStepped:Connect(function()
             if FirstPerson == true then
                   local magnitude = (camera.Focus.p - camera.CoordinateFrame.p).Magnitude
-                  if magnitude <= 1 then
+                  if magnitude <= 1.5 then
                         canusing = true
                   else
                         canusing = false
@@ -197,7 +197,7 @@ local function aimbotL()
             end
 
             if functions.aimbotF and pressed == true then
-                  if aimtarget and aimtarget.Character and aimtarget.Character:FindFirstChild(aimpart) and aimtarget.Character:FindFirstChild("Humanoid").Health <= 15 then
+                  if aimtarget and aimtarget.Character and aimtarget.Character:FindFirstChild(aimpart) and aimtarget.Character:FindFirstChild("Humanoid").Health >= 15 then
                         if FirstPerson == true and canusing == true then
                               if velocity == true then
                                     camera.CFrame = CFrame.new(camera.CFrame.p, aimtarget.Character[aimpart].Position + aimtarget.Character[aimpart].Velocity / predict)
