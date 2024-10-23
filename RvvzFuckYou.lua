@@ -69,9 +69,12 @@ local function highlightL()
 
       Players.PlayerAdded:Connect(Highlight)
       for i, v in pairs(Players:GetPlayers()) do
-            if v.Character and functions.highlightF then
-                  wait()
-                  Highlight(v)
+            if functions.highlightF then
+                  local char = v.Character
+                  if char then
+                        wait()
+                        Highlight(v)
+                  end
             end
       end
 
@@ -194,7 +197,7 @@ local function aimbotL()
             end
 
             if functions.aimbotF and pressed == true then
-                  if aimtarget and aimtarget.Character and aimtarget.Character:FindFirstChild(aimpart) then
+                  if aimtarget and aimtarget.Character and aimtarget.Character:FindFirstChild(aimpart) and aimtarget.Character:FindFirstChild("Humanoid").Health <= 15 then
                         if FirstPerson == true and canusing == true then
                               if velocity == true then
                                     camera.CFrame = CFrame.new(camera.CFrame.p, aimtarget.Character[aimpart].Position + aimtarget.Character[aimpart].Velocity / predict)
