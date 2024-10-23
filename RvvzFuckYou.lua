@@ -18,7 +18,7 @@ local functions = {
       anti_flingF = nil;
       infstaminaF = nil;
       nofalldamageF = false;
-      highlightF = false;
+      highlightF = nil;
       aimbotF = false;
 }
 
@@ -32,7 +32,7 @@ local remotes = {
 local function highlightL()
       local FillColor = Color3.fromRGB(175, 25, 255)
       local DepthMode = "AlwaysOnTop"
-      local FillTransparency = 0.5
+      local FillTransparency = 1
       local OutlineColor = Color3.fromRGB(255, 255, 255)
       local OutlineTransparency = 0
 
@@ -184,7 +184,7 @@ local function aimbotL()
 
       run.RenderStepped:Connect(function()
             if FirstPerson == true then
-                  if (camera.Focus.Position - camera.CoordinateFrame.Position).Magnitude > 1 or me.CameraMode == Enum.CameraMode.LockFirstPerson then
+                  if (camera.Focus.p - camera.CoordinateFrame.p).Magnitude <= 1 then
                         canusing = true
                   end
             end
